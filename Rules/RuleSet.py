@@ -1,0 +1,109 @@
+# 	BanBot Milter by Clint Priest (2013)
+#
+# 		This software is licensed according to the GNU Free Documentation License
+# 		as is the pymilter library upon which it is built, the license can be found
+# 		here: http://www.gnu.org/licenses/fdl-1.3.txt
+#
+#
+
+# System Imports
+from __future__ import print_function;
+import re, traceback;
+
+# Pypi Imports
+from colors import *;
+
+# pklib Imports
+import pklib.Output;
+from pklib.Output import *;
+
+# Package Imports
+from Rule import *;
+from Parser import ParseRuleStatement, ParseException;
+
+class RuleSet():
+	'''	Represents a set of rules '''
+
+	NORMAL 	 = 0;
+	STRICT 	 = 1;
+	LINT 	 = 2;
+	TEST 	 = 3;
+
+	def __init__( self, inputString, Mode=NORMAL ):
+		"""
+			Mode
+				NORMAL 	- Ignores any rules with issues
+				STRICT 	- Fails if any rules have errors
+				LINT	- Fails if any rules have errors, outputs errors to stdout
+				TEST	- Any rules loaded will be tested against expected output, denoted by >> after rule declaration, outputs errors to stdout
+		"""
+		self.Rules = [ ];
+		self.Mode = Mode;
+		self.ParseString( inputString );
+
+	def ParseString( self, inputString ):
+
+		inputString = self.StripComments( inputString ).strip();
+
+		# Yields a rule statement per iteration from file
+ 		def readrule( inputString ):
+			for rule in inputString.split( ';' ):
+				if( len( rule.strip() ) ):
+					yield ( rule + ';' ).strip();
+
+		splitRules = [ rule for rule in readrule( inputString ) ];
+
+		if( self.Mode == RuleSet.TEST and len( splitRules ) > 1 ):
+			print( 'RuleSet Input:', indent( inputString ),
+				'', 		'==============================', 		'', 	sep='\n' );
+
+ 		for rule_text in splitRules:
+ 			try:
+ 				if( self.Mode == RuleSet.TEST ):
+ 					print( 'Rule Input:', indent( rule_text ), '', sep='\n' );
+
+ 				rule = Rule( rule_text );
+
+ 				if( self.Mode == RuleSet.TEST ):
+ 					print( 'Rule Result:', indent( repr( rule ) ), '', sep='\n' );
+ 					print( 'Rule Text From Result:', indent( str( rule ) ),
+						'', '==============================', '', sep='\n' );
+
+		 	except RuleException as e:
+		 		print( "Exception while parsing rule:" );
+		 		print( indent( str( e ) ) );
+# 		 		print( StrippedLine );
+# 		 		print( '-' * ( e.col - 1 ) + '^' );
+# 		 		print( str( e ) );
+# 		 		print();
+# 		 		print( white( '**** RuleException from RuleSet ****', bg='red', style='bold' ) );
+		 	except Exception as e:
+		 		print( "Exception while processing rule: (" + str( type( e ) ) + ')' );
+		 		print( '\t' + rule_text )
+		 		traceback.print_exc( e );
+
+# 		 	finally:
+# 				self.Rules.append( Rule );
+
+	def StripComments( self, s ):
+		# Capture double-quoted strings
+		dqs = re.findall( r'"(?:\\"|[^"])+"', s );
+
+		# Proxy double-quoted strings
+		for index, item in enumerate( dqs ):
+			s = s.replace( item, '![{' + str( index ) + '}]!' );
+
+		# Strip Comments
+		s = re.sub( r'\s*#.+', '', s );
+
+		# Unproxy double-quoted strings
+		for index, item in enumerate( dqs ):
+			s = s.replace( '![{' + str( index ) + '}]!', item );
+
+		return s;
+
+
+
+
+
+

@@ -1,0 +1,33 @@
+Tests that multiple rules on one line are allowed
+
+--RULE--
+# Multple Rules on One Line
+discard when to noc@; discard when to noc@ && from 1.1.1.1/32 || from 1.1.1.2 && from 1.1.1.3;
+
+--EXPECT--
+RuleSet Input:
+	discard when to noc@; discard when to noc@ && from 1.1.1.1/32 || from 1.1.1.2 && from 1.1.1.3;
+
+==============================
+
+Rule Input:
+	discard when to noc@;
+
+Rule Result:
+	Discard WhereTo( Email('noc@') )
+
+Rule Text From Result:
+	discard when to noc@;
+
+==============================
+
+Rule Input:
+	discard when to noc@ && from 1.1.1.1/32 || from 1.1.1.2 && from 1.1.1.3;
+
+Rule Result:
+	Discard ( WhereTo( Email('noc@') ) AND WhereFrom( IPMask('1.1.1.1/32') ) ) OR ( WhereFrom( IPMask('1.1.1.2') ) AND WhereFrom( IPMask('1.1.1.3') ) )
+
+Rule Text From Result:
+	discard when ( to noc@ AND from 1.1.1.1/32 ) OR ( from 1.1.1.2/32 AND from 1.1.1.3/32 );
+
+============================== 

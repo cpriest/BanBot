@@ -1,0 +1,16 @@
+Tests that a domain name is recognized as a domain type
+ 
+--RULE--
+reject to testdomain.com;
+
+--EXPECT--
+Rule Input:
+	reject to testdomain.com;
+
+Rule Result:
+	Reject WhereTo( Domain('testdomain.com') )
+
+Rule Text From Result:
+	reject when to testdomain.com;
+
+============================== 

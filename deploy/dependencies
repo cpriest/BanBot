@@ -1,0 +1,12 @@
+yum		python
+yum		python-ipaddr
+yum		python-devel
+yum		sendmail-devel
+yum		sendmail-milter
+
+build	http://sourceforge.net/projects/pymilter/files/pymilter/pymilter-0.9.7/pymilter-0.9.7.tar.gz/download
+build	http://pypi.python.org/packages/source/p/python-daemon/python-daemon-1.5.5.tar.gz
+
+pypi	ansicolors
+
+service	sendmail	off

@@ -1,0 +1,16 @@
+Tests that an reject command can accept the optional routed parameter
+
+--RULE--
+reject routed from 6.1.1.1/14;
+
+--EXPECT--
+Rule Input:
+	reject routed from 6.1.1.1/14;
+
+Rule Result:
+	Reject WhereFrom( IPMask('6.1.1.1/14') )
+
+Rule Text From Result:
+	reject when routed from 6.1.1.1/14;
+
+============================== 

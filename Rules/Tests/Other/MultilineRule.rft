@@ -1,0 +1,19 @@
+Tests that a rule may span multiple lines
+--RULE--
+discard where to noc@ 
+	and ( from 2.1.1.1 or from 2.1.1.2 )
+	and !(from 2.2.1.1 and from 2.2.1.2 and from 2.2.1.3);
+
+--EXPECT--
+Rule Input:
+	discard where to noc@
+		and ( from 2.1.1.1 or from 2.1.1.2 )
+		and !(from 2.2.1.1 and from 2.2.1.2 and from 2.2.1.3);
+
+Rule Result:
+	Discard WhereTo( Email('noc@') ) AND ( WhereFrom( IPMask('2.1.1.1') ) OR WhereFrom( IPMask('2.1.1.2') ) ) AND NOT ( WhereFrom( IPMask('2.2.1.1') ) AND WhereFrom( IPMask('2.2.1.2') ) AND WhereFrom( IPMask('2.2.1.3') ) )
+
+Rule Text From Result:
+	discard when to noc@ AND ( from 2.1.1.1/32 OR from 2.1.1.2/32 ) AND NOT ( from 2.2.1.1/32 AND from 2.2.1.2/32 AND from 2.2.1.3/32 );
+
+============================== 

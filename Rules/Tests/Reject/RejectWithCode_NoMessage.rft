@@ -1,0 +1,18 @@
+Tests that a reject rule may specify the code and not the message
+
+--RULE--
+reject with 550 
+	when to noc@ && from 3.1.1.1/32 || from 3.1.1.2 && from 3.1.1.3;
+
+--EXPECT--
+Rule Input:
+	reject with 550
+		when to noc@ && from 3.1.1.1/32 || from 3.1.1.2 && from 3.1.1.3;
+
+Rule Result:
+	Reject ( WhereTo( Email('noc@') ) AND WhereFrom( IPMask('3.1.1.1/32') ) ) OR ( WhereFrom( IPMask('3.1.1.2') ) AND WhereFrom( IPMask('3.1.1.3') ) )
+
+Rule Text From Result:
+	reject with 550 when ( to noc@ AND from 3.1.1.1/32 ) OR ( from 3.1.1.2/32 AND from 3.1.1.3/32 );
+
+============================== 

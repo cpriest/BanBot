@@ -1,0 +1,16 @@
+Tests that a regular ip address is recognized as an ip address type
+
+--RULE--
+accept from 9.1.1.1;
+
+--EXPECT--
+Rule Input:
+	accept from 9.1.1.1;
+
+Rule Result:
+	Accept WhereFrom( IPMask('9.1.1.1') )
+
+Rule Text From Result:
+	accept when from 9.1.1.1/32;
+
+============================== 

@@ -1,0 +1,16 @@
+Tests that a email address is recognized as a email type
+
+--RULE--
+reject to nobody@nowhere.net;
+
+--EXPECT--
+Rule Input:
+	reject to nobody@nowhere.net;
+
+Rule Result:
+	Reject WhereTo( Email('nobody@nowhere.net') )
+
+Rule Text From Result:
+	reject when to nobody@nowhere.net;
+
+============================== 

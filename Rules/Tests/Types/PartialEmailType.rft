@@ -1,0 +1,16 @@
+Tests that a partial email address is recognized as a email type
+
+--RULE--
+reject to nobody@;
+
+--EXPECT--
+Rule Input:
+	reject to nobody@;
+
+Rule Result:
+	Reject WhereTo( Email('nobody@') )
+
+Rule Text From Result:
+	reject when to nobody@;
+
+============================== 

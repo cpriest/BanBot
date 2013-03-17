@@ -1,0 +1,17 @@
+Tests that preceding white-space is ignored
+
+--RULE--
+	# Before Rule, pre-tabbed Comment
+	reject with 550 from 7.1.1.1/16;
+
+--EXPECT--
+Rule Input:
+	reject with 550 from 7.1.1.1/16;
+
+Rule Result:
+	Reject WhereFrom( IPMask('7.1.1.1/16') )
+
+Rule Text From Result:
+	reject with 550 when from 7.1.1.1/16;
+
+============================== 

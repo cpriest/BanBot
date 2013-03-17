@@ -1,0 +1,14 @@
+Test that a reject message must be double quoted or generate a parsing error
+
+--RULE--
+# Should fail - not double quoted
+reject with 550 You are rejected from 8.1.1.1/16;
+
+--EXPECT--
+Rule Input:
+	reject with 550 You are rejected from 8.1.1.1/16;
+
+Exception while parsing rule:
+	reject with 550 You are rejected from 8.1.1.1/16;
+	----------------^
+	Expected 'not' (at char 16), (line:1, col:17)

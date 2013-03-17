@@ -1,0 +1,16 @@
+Tests that an accept command can accept the optional routed parameter
+
+--RULE--
+accept routed from cc-yahoo.com;
+
+--EXPECT--
+Rule Input:
+	accept routed from cc-yahoo.com;
+
+Rule Result:
+	Accept WhereFrom( Domain('cc-yahoo.com') )
+
+Rule Text From Result:
+	accept when routed from cc-yahoo.com;
+
+============================== 

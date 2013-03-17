@@ -1,0 +1,16 @@
+Tests basic accept rule
+
+--RULE--
+accept from cpriest@zerocue.com;
+
+--EXPECT--
+Rule Input:
+	accept from cpriest@zerocue.com;
+
+Rule Result:
+	Accept WhereFrom( Email('cpriest@zerocue.com') )
+
+Rule Text From Result:
+	accept when from cpriest@zerocue.com;
+
+==============================
