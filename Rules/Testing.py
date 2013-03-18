@@ -84,7 +84,7 @@ class RuleFileTest( pklib.Object ):
 
 			with Capture.Stdout() as Output:
 				try:
-					self.RuleSet = RuleSet( '\n'.join( self.Sections['RULE'] ), Mode=RuleSet.TEST );
+					self.RuleSet = RuleSet( Mode=RuleSet.TEST ).ParseString( '\n'.join( self.Sections['RULE'] ) );
 
 				except RuleException as e:
 			 		print( 'RuleException from RuleFileTest' );

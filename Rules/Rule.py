@@ -30,7 +30,7 @@ class Rule():
 		[ ] - Optional
 		 |	- OR options within group of parenthesis or brackets 
 	
-		{command} [command_params] [when | where] {match} [ ( {branch_op} ) {match} ... ];
+		{command} [command_params] [when | where] {match} [ {branch_op} {match} ... ];
 	
 			{command}	- One of:
 				accept			- Accept the message and end Milter processing
@@ -45,21 +45,33 @@ class Rule():
 					SMTP_Code	- Usable only with reject, supply 550 or other 5xx reject code
 					SMTP_String - String used with reject
 
-			[when | where]	- Has no meaning, only allowed for clarity of rule input
+			[when | where]	- Has no meaning, allowed for clarity of rule input
 			
 			{match}		- A matching statement in the form of
 			
-				{match_type} {match_param}
+				[match_modifier] {match_type} {data_type}
 				
-					[ routed ] from ( ipMask | domain | emailAddress )
+					[match_modifier] - Omitting a match modifier makes a best guess based on the {data_type} specified
+										by attempting to utilize one of the modifiers below, in the order specified below
+
+					[ routed | connected | envelope ] from ( ipMask | domain | emailAddress )
 	
-						routed	- Indicates that the rule can match on any entry of a received header, 
-									without this the rule only matches on the connecting client
+						connected*	- Indicates that the rule matches against the connecting client
+										Valid Data Types: ipMask | domain
+										
+						envelope*	- Indicates that the rule matches against the envelope from address
+										Valid Data Types: emailAddress
+
+						routed		- Indicates that the rule can match on any entry of a received header
+										Valid Data Types: ipMask | domain | emailAddress
 					
-					to ( domain | emailAddress )
+					[ envelope ] to ( domain | emailAddress )
+					
+						envelope*	- Indicates that the rule matches against the envelope to address
+										Valid Data Types: domain | emailAddress
 				
-				{match_param}	- Various match parameter types
-					ipMask			- CIDR notation IP address mask, such as 127.0.0.1/8
+				{data_type}		- Various match parameter data types
+					ipMask			- CIDR notation IP address mask, such as 127.0.0.1/8 or ordinary ip address
 					domain			- Any valid domain name, matches any from account
 					emailAddress	- Any valid email address
 	
@@ -67,11 +79,11 @@ class Rule():
 				and | &&		- Logical and operator
 				or | ||			- Logical or operator
 
-	Note: You may mix and match && and || with parenthesis for grouping, example:
-		discard 
+	You may mix and match && and || with parenthesis for grouping, see Rules/Tests for examples.
 
 	Rule Handling:	
-		- First rule to match wins, rule order matters.'''
+		- First rule to match wins, rule order matters.
+	'''
 
 	def __init__( self, rule_text ):
 		self.RuleText = rule_text;

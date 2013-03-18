@@ -29,7 +29,7 @@ class RuleSet():
 	LINT 	 = 2;
 	TEST 	 = 3;
 
-	def __init__( self, inputString, Mode=NORMAL ):
+	def __init__( self, Mode=NORMAL ):
 		"""
 			Mode
 				NORMAL 	- Ignores any rules with issues
@@ -39,11 +39,10 @@ class RuleSet():
 		"""
 		self.Rules = [ ];
 		self.Mode = Mode;
-		self.ParseString( inputString );
 
 	def ParseString( self, inputString ):
 
-		inputString = self.StripComments( inputString ).strip();
+		inputString = self._StripComments( inputString ).strip();
 
 		# Yields a rule statement per iteration from file
  		def readrule( inputString ):
@@ -62,30 +61,35 @@ class RuleSet():
  				if( self.Mode == RuleSet.TEST ):
  					print( 'Rule Input:', indent( rule_text ), '', sep='\n' );
 
- 				rule = Rule( rule_text );
+ 				rule_object = Rule( rule_text );
 
  				if( self.Mode == RuleSet.TEST ):
- 					print( 'Rule Result:', indent( repr( rule ) ), '', sep='\n' );
- 					print( 'Rule Text From Result:', indent( str( rule ) ),
+ 					print( 'Rule Result:', indent( repr( rule_object ) ), '', sep='\n' );
+ 					print( 'Rule Text From Result:', indent( str( rule_object ) ),
 						'', '==============================', '', sep='\n' );
+
+				self.Rules.append( rule_object );
 
 		 	except RuleException as e:
 		 		print( "Exception while parsing rule:" );
 		 		print( indent( str( e ) ) );
-# 		 		print( StrippedLine );
-# 		 		print( '-' * ( e.col - 1 ) + '^' );
-# 		 		print( str( e ) );
-# 		 		print();
-# 		 		print( white( '**** RuleException from RuleSet ****', bg='red', style='bold' ) );
+
 		 	except Exception as e:
 		 		print( "Exception while processing rule: (" + str( type( e ) ) + ')' );
 		 		print( '\t' + rule_text )
 		 		traceback.print_exc( e );
 
-# 		 	finally:
-# 				self.Rules.append( Rule );
+		return self;
 
-	def StripComments( self, s ):
+
+	def LoadFromFile( self, Filepath ):
+		''' Loads rules from the given Filepath'''
+		with open( Filepath, 'r' ) as fh:
+			self.ParseString( fh.read() );
+		return self;
+
+
+	def _StripComments( self, s ):
 		# Capture double-quoted strings
 		dqs = re.findall( r'"(?:\\"|[^"])+"', s );
 
