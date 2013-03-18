@@ -13,22 +13,30 @@ from .. import RuleBase;
 #
 
 class WhereBase( RuleBase ):
-	def __init__( self, tokens ):
-		self.Routed = False;
+	Automatic = '';
 
-		if( tokens[0].lower() == 'routed' ):
-			self.Routed = True;
+	def __init__( self, tokens ):
+		self.item = None;
+		self.Modifier = self.Automatic;
+
+		if( tokens[0].lower() in self.Modifiers.keys() ):
+			self.Modifier = tokens[0].lower();
 			self.SetParam( tokens[2] );
 		else:
 			self.SetParam( tokens[1] );
+
 
 	def SetParam( self, item ):
 		self.item = item;
 
 	@property
 	def Command( self ):
-		Command = self.ClassName.replace( 'Where', '' ).lower();
-		return 'routed ' + Command if self.Routed else Command;
+		return self.CommandModifier + self.ClassName.replace( 'Where', '' ).lower();
+
+	@property
+	def CommandModifier( self ):
+		return self.Modifier + ( ' ' if self.Modifier != self.Automatic else '' );
+
 
  	def __repr__( self ):
  		return "%s( %s )" % ( self.ClassName, repr( self.item ) );

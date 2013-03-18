@@ -9,4 +9,14 @@
 from . import WhereBase;
 
 class WhereFrom( WhereBase ):
-	pass;
+
+	Connected	 = 'connected';
+	Envelope 	 = 'envelope';
+	Routed 		 = 'routed';
+
+	Modifiers = {
+		Connected	: [ ],
+		Envelope	: [ ],
+		Routed		: [ ],
+	};
+

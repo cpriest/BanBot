@@ -9,4 +9,8 @@
 from . import WhereBase;
 
 class WhereTo( WhereBase ):
-	pass;
+	Envelope 	 = 'envelope';
+
+	Modifiers = {
+		Envelope	: [ ],
+	};
