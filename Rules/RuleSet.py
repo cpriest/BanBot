@@ -74,10 +74,10 @@ class RuleSet():
 		 		print( "Exception while parsing rule:" );
 		 		print( indent( str( e ) ) );
 
-		 	except Exception as e:
-		 		print( "Exception while processing rule: (" + str( type( e ) ) + ')' );
-		 		print( '\t' + rule_text )
-		 		traceback.print_exc( e );
+		 	except Exception:
+		 		print( "Exception while processing rule:" );
+		 		print( indent( rule_text ) );
+		 		traceback.print_exc( file=sys.stdout );
 
 		return self;
 
