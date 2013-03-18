@@ -14,16 +14,20 @@ import sys;
 # System Imports
 import sys, os, traceback;
 from pprint import pprint;
+from argparse import ArgumentParser;
 
 # Pypi Imports
 from colors import *;
 
 
+if __name__ != '__main__':
+	print( "This script is intended to be called directly, not imported" );
+	exit( 1 );
+
 # Allow relative imports when run directly
-if __name__ == "__main__" and __package__ is None:
-	sys.path[0] = os.path.abspath( sys.path[0] + os.sep + '..' );
-	import Rules;
- 	__package__ = 'Rules';
+sys.path[0] = os.path.abspath( sys.path[0] + os.sep + '..' );
+import Rules;
+__package__ = 'Rules';
 
 # pklib Imports
 from pklib import *;
@@ -31,6 +35,29 @@ from pklib import *;
 # Package Imports
 from . import *;
 from Testing import *;
+
+class CommandLineArguments( ArgumentParser ):
+	def __init__( self ):
+		ArgumentParser.__init__( self, description='BanBot Milter' );
+
+		self.add_argument( '-f', '--filter', 	help='Filters the test names by the given pcre pattern' );
+
+		self.args = vars( self.parse_args() );
+
+
+	def __getattr__( self, name ):
+		'''Returns the given parameter if it exists or None otherwise'''
+		try:
+			return self.args[name];
+		except:
+			return None;
+
+
+	def __str__( self ):
+		return str( self.args );
+
+CommandLineArguments = CommandLineArguments();
+
 
 __dir__ = os.path.abspath( os.path.dirname( __file__ ) );
 
@@ -41,6 +68,8 @@ for root, dirs, files in os.walk( os.path.join( __dir__, 'Tests' ) ):
 	test_files += [ os.path.join( root, filename )
 		for filename in files
 			if filename.endswith( '.rft' )
+				and ( re.match( CommandLineArguments.filter, filename ) != None
+						if CommandLineArguments.filter != None else True )
 	];
 
 
