@@ -21,8 +21,6 @@ def DumpParseActions( line, pos, tokens ):
 	print( tokens.getName(), tokens );
 	print( '-----' );
 
-
-
 HashComment = Literal( '#' ) + SkipTo( LineEnd() );
 Comments = HashComment;
 
@@ -40,7 +38,7 @@ type_Email = Regex( r'([A-Za-z0-9._%+-]+)@(?:([A-Za-z0-9.-]+)\.([A-Za-z]{2,4}))?
 grp_FromParts = ( type_IPMask | type_Domain | type_Email );
 grp_ToParts = ( type_Domain | type_Email );
 
-whereFrom = ( Optional( CaselessLiteral( 'routed' ) ) + CaselessKeyword( 'from' ) + grp_FromParts ).setParseAction( lambda line, pos, tokens: WhereFrom( tokens ) );
+whereFrom = ( Optional( oneOf( WhereFrom.Modifiers.keys(), caseless=True ) ) + CaselessKeyword( 'from' ) + grp_FromParts ).setParseAction( lambda line, pos, tokens: WhereFrom( tokens ) );
 whereTo	 = ( CaselessLiteral( 'to' ) + grp_ToParts ).setParseAction( lambda line, pos, tokens: WhereTo( tokens ) );
 whereStmt = ( whereFrom | whereTo );
 

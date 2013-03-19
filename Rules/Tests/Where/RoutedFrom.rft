@@ -1,0 +1,16 @@
+Tests that 'routed from' is allowed syntax
+
+--RULE--
+accept when routed from 9.1.1.1/16;
+
+--EXPECT--
+Rule Input:
+	accept when routed from 9.1.1.1/16;
+
+Rule Result:
+	Accept WhereFrom( IPMask('9.1.1.1/16') )
+
+Rule Text From Result:
+	accept when routed from 9.1.1.1/16;
+
+==============================
