@@ -25,9 +25,9 @@ timer_update() {
 
 running() {
 	if [ -f $PID_FILE ]; then
-		kill -0 `cat $PID_FILE` 2>/dev/null || return 1;
+		kill -0 `cat $PID_FILE` 2>/dev/null && return 0;
 	fi;
-	return 0;
+	return 1;
 }
 
 start() {
