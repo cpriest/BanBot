@@ -39,7 +39,7 @@ grp_FromParts = ( type_IPMask | type_Domain | type_Email );
 grp_ToParts = ( type_Domain | type_Email );
 
 whereFrom = ( Optional( oneOf( WhereFrom.Modifiers.keys(), caseless=True ) ) + CaselessKeyword( 'from' ) + grp_FromParts ).setParseAction( lambda line, pos, tokens: WhereFrom( tokens ) );
-whereTo	 = ( CaselessLiteral( 'to' ) + grp_ToParts ).setParseAction( lambda line, pos, tokens: WhereTo( tokens ) );
+whereTo	 = ( Optional( oneOf( WhereTo.Modifiers.keys(), caseless=True ) ) + CaselessLiteral( 'to' ) + grp_ToParts ).setParseAction( lambda line, pos, tokens: WhereTo( tokens ) );
 whereStmt = ( whereFrom | whereTo );
 
 
