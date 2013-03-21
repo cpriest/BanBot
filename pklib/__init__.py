@@ -6,8 +6,11 @@
 #
 #
 
+import pprint;
+
 
 class Terminal():
+	''' Represents Console/Terminal settings on linux hosts'''
 
 	def __init__( self ):
 		self.__Height = self.__Width = None;
@@ -33,6 +36,8 @@ class Terminal():
 
 Terminal = Terminal();
 
+
+
 class Object( object ):
 	'''Base object class containing what I think should be in all objects'''
 
@@ -40,4 +45,39 @@ class Object( object ):
 	def ClassName( self ):
 		return self.__class__.__name__;
 
-__all__ = [ 'Terminal' ];
+
+
+class AttrDict( dict, Object ):
+	'''		AttrDict() is a dictionary with additional features
+				- Allows access to the dictionary in . or [ ] form
+				- Otherwise un-initialized entries are automatically created as sub AttrDict() objects'''
+
+	def __init__( self, *args, **kwargs ):
+		super( AttrDict, self ).__init__( *args, **kwargs );
+		self.__dict__ = self;
+
+	def __getattr__( self, name ):
+		try:
+			return super( AttrDict, self ).__getattr__( name );
+		except AttributeError:
+			self[name] = AttrDict();
+			return self[name];
+
+
+
+def pp( *args, **kwargs ):
+	'''Alias for pprint.pprint() with preferred defaults'''
+
+	if( 'width' not in kwargs ):
+		kwargs['width'] = 5;
+	return pprint.pprint( *args, **kwargs );
+
+def pf( *args, **kwargs ):
+	'''Alias for pprint.pformat() with preferred defaults'''
+
+	if( 'width' not in kwargs ):
+		kwargs['width'] = 5;
+	return pprint.pformat( *args, **kwargs );
+
+
+__all__ = [ 'Terminal', 'AttrDict', 'pf' ];
