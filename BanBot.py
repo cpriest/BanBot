@@ -59,8 +59,7 @@ class CommandLineArguments( ArgumentParser ):
 			import pwd;
 
 			Error = 'Cannot set user (-u %s)' % self.user;
-			if( os.getuid() != 0 ):
-				self.ExitError( Error + ', not running as root.' );
+			os.getuid() != 0 and self.ExitError( Error + ', not running as root.' );
 
 			try:
 				self.args['uid'] = pwd.getpwnam( self.user )[2];
@@ -73,8 +72,8 @@ class CommandLineArguments( ArgumentParser ):
 			import grp;
 
 			Error = 'Cannot set group (-g %s)' % self.group;
-			if( os.getuid() != 0 ):
-				self.ExitError( Error + ', not running as root.' );
+
+			os.getuid() != 0 and self.ExitError( Error + ', not running as root.' );
 
 			try:
 				self.args['gid'] = grp.getgrnam( self.group )[2];
@@ -86,16 +85,16 @@ class CommandLineArguments( ArgumentParser ):
 		if( self.chroot != None and not os.path.exists( self.chroot ) ):
 			self.ExitError( 'Cannot chroot (-C %s), directory does not exist.' % self.chroot );
 
-		if ( self.logfile ):
-			self.CreateOwnFile( self.logfile );
-		if( self.pidfile ):
-			self.CreateOwnFile( self.pidfile );
+		self.logfile and self.CreateOwnFile( self.logfile );
+		self.pidfile and self.CreateOwnFile( self.pidfile );
+
 
 	def CreateOwnFile( self, Filepath ):
 		if( Filepath ):
 			if( not os.path.exists( Filepath ) ):
 				with open( Filepath, 'w' ): pass;
 			os.chown( Filepath, self.uid, self.gid );
+
 
 	def __getattr__( self, name ):
 		try:
@@ -116,14 +115,19 @@ class CommandLineArguments( ArgumentParser ):
 
 CommandLineArgs = CommandLineArguments();
 
+
+
+
 class MilterThread( Thread ):
+	'''	Wraps a sendmail milter instance in a thread to prevent the sendmail library from stealing all signals'''
+
 	def __init__( self ):
 		Thread.__init__( self );
 		self.log = ChannelLogger( '%T [M] %c %m', CommandLineArgs.logchannels );
 		self.start();
 
-	def run( self ):
 
+	def run( self ):
 		self.log( "BanBot Started pid=%d" % ( os.getpid() ) );
 		socketname = "/tmp/BanBot.sock";
 		timeout = 600;
@@ -139,6 +143,7 @@ class MilterThread( Thread ):
 
 		self.log( "BanBot Stopped pid=%d" % ( os.getpid() ) );
 
+
 	def quit( self ):
 		self.log.libmilter( "Stopping libmilter..." );
 		milter.stop();
@@ -146,19 +151,29 @@ class MilterThread( Thread ):
 		self.join();
 
 
+
+
+'''	Base script file for all BanBot instances '''
 class BanBotScript( Script ):
+
 	def __init__( self ):
 		self.log = ChannelLogger( '%T [' + self.__class__.__name__.replace( 'BanBot', '' )[0:1] + '] %c %m', CommandLineArgs.logchannels );
 		Script.__init__( self );
 
+
 	def Initialize( self ):
 		self.log.proc( "Startup pid=%d" % ( os.getpid() ) );
+
 
 	def OnExit( self ):
 		self.log.proc( "Shutdown" );
 
 
+
+
+'''	Watches that the BanBotProcess is always running, if it dies, the water will re-start it'''
 class BanBotWatcher( BanBotScript ):
+
 	def __init__( self ):
 		BanBotScript.__init__( self );
 
@@ -198,6 +213,7 @@ class BanBotWatcher( BanBotScript ):
 		# Exiting
 		self.TerminateChild();
 
+
 	def StartChild( self ):
 		args = [ sys.argv[0], '--mode', 'process' ];
 		if( CommandLineArgs.logfile ):
@@ -209,6 +225,7 @@ class BanBotWatcher( BanBotScript ):
 								stdout=open( CommandLineArgs.logfile, 'a+', 1 ),
 								stderr=open( CommandLineArgs.logfile, 'a+', 1 ), env=None, close_fds=True );
 		self.log.watcher( "Started Process, pid=%d" % self.ChildProc.pid );
+
 
 	def TerminateChild( self, sig=signal.SIGTERM ):
 		if( self.ChildProc == None ):
@@ -244,7 +261,10 @@ class BanBotWatcher( BanBotScript ):
 
 
 
+
+''' Script which starts a MilterThread and responds to unix signals'''
 class BanBotProcess( BanBotScript ):
+
 	def __init__( self ):
 		BanBotScript.__init__( self );
 
@@ -270,7 +290,6 @@ class BanBotProcess( BanBotScript ):
 		self.log.signals( "(SIGTERM Caught, Exiting)" );
 		self.ExitEvent.set();
 
-# exit(0);
 
 if( __name__ == "__main__" ):
  	if( CommandLineArgs.mode == 'watch' ):
