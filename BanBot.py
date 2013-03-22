@@ -19,7 +19,6 @@ from __future__ import print_function;
 # Standard Libraries
 import StringIO, time, re, sys, traceback, shlex, os, subprocess, argparse;
 from argparse import ArgumentParser;
-from Queue import Queue;
 from threading import Thread;
 
 # Libraries
@@ -27,6 +26,7 @@ import milter, Milter;
 
 # BanBot Imports
 from BanBotMilter import *;
+from Rules import *;
 
 # pklib Imports
 from pklib.Script import *;
@@ -121,8 +121,9 @@ CommandLineArgs = CommandLineArguments();
 class MilterThread( Thread ):
 	'''	Wraps a sendmail milter instance in a thread to prevent the sendmail library from stealing all signals'''
 
-	def __init__( self ):
+	def __init__( self, rule_set ):
 		Thread.__init__( self );
+		self.ActiveRuleSet = rule_set;
 		self.log = ChannelLogger( '%T [M] %c %m', CommandLineArgs.logchannels );
 		self.start();
 
@@ -133,7 +134,10 @@ class MilterThread( Thread ):
 		timeout = 600;
 		# Register to have the Milter factory create instances of your class:
 
-		Milter.factory = BanBotMilter;
+		def CreateBanBotMilterInstance():
+			return BanBotMilter( self.ActiveRuleSet );
+
+		Milter.factory = CreateBanBotMilterInstance;
 		flags = Milter.CHGBODY + Milter.CHGHDRS + Milter.ADDHDRS;
 		flags += Milter.ADDRCPT;
 		flags += Milter.DELRCPT;
@@ -269,7 +273,7 @@ class BanBotProcess( BanBotScript ):
 		BanBotScript.__init__( self );
 
 	def Execute( self ):
-		ExecutionThread = MilterThread();
+		ExecutionThread = MilterThread( RuleSet().LoadFromFile( '/etc/banbot/global.rf' ) );
 
 		while not self.ExitEvent.is_set():
 			time.sleep( 1 );

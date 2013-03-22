@@ -14,12 +14,16 @@ from pprint import pformat;
 # pklib Imports
 from pklib import *;
 
+# Package Imports
+from Rules import *;
+
 class BanBotMilter( Milter.Base ):
 	MSG_USER_UNKNOWN = '550 Recipient address rejected. User unknown in virtual mailbox table';
 
-	def __init__( self ):    # A new instance with each new connection.
+	def __init__( self, rule_set ):    # A new instance with each new connection.
 		self.id = Milter.uniqueID();    # Integer incremented with each call.
 		self.Message = AttrDict();    # Stores current known email information
+		self.ActiveRuleset = rule_set;
 
 	# each connection runs in its own thread and has its own myMilter
 	# instance.	Python code must be thread safe.	This is trivial if only stuff
@@ -47,7 +51,7 @@ class BanBotMilter( Milter.Base ):
 
 		self.log( "connect from %s at %s" % ( hostname, hostaddr ) )
 
-		return Milter.CONTINUE
+		return self.ProcessRuleSet();
 
 
 	def hello( self, heloname ):
@@ -55,7 +59,7 @@ class BanBotMilter( Milter.Base ):
 		self.Message.SMTP.HELO_NAME = heloname;
 		self.log( "HELO %s" % heloname )
 
-		return Milter.CONTINUE
+		return self.ProcessRuleSet();
 
 
  	@Milter.noreply
@@ -69,7 +73,7 @@ class BanBotMilter( Milter.Base ):
 
 		self.log( "mail from:", self.Message.SMTP.MAIL_FROM, *str )
 
-		return Milter.CONTINUE
+		return self.ProcessRuleSet();
 
 
 	def envrcpt( self, to, *str ):
@@ -88,7 +92,7 @@ class BanBotMilter( Milter.Base ):
 		if( self.IsRevokedAddress( Email ) ):
 			return self.RejectMessage( '554 You shared %s without my permission, permission is now revoked' % Email );
 
-		return Milter.CONTINUE
+		return self.ProcessRuleSet();
 
 
 	def header( self, name, value ):
@@ -110,13 +114,13 @@ class BanBotMilter( Milter.Base ):
  				self.log( "While Processing Header:\n%s" % ( value ) );
  				self.LogException( e );
 
-		return Milter.CONTINUE
+		return Milter.CONTINUE;
 
 
 	@Milter.noreply
 	def eoh( self ):
 		self.Message.Raw.write( "\n" )    # terminate headers
-		return Milter.CONTINUE
+		return self.ProcessRuleSet();
 
 
 	@Milter.noreply
@@ -148,7 +152,7 @@ class BanBotMilter( Milter.Base ):
 			return Milter.DISCARD;
 
 		self.log( " --> ACCEPTED \n" );
-		return Milter.ACCEPT
+		return self.ProcessRuleSet();
 
 
 	def close( self ):
@@ -169,6 +173,16 @@ class BanBotMilter( Milter.Base ):
 		self.tblWhoisTraces = [ ];
 
 	## === Support Functions ===
+
+	def ProcessRuleSet( self ):
+		map = {
+			Rule.ACCEPT : Milter.ACCEPT,
+			Rule.REJECT : Milter.REJECT,
+			Rule.DISCARD : Milter.DISCARD,
+			Rule.NO_MATCH : Milter.CONTINUE,
+		};
+		return map[self.ActiveRuleset.GetResult( self.Message )];
+
 
 
 	def log( self, *msg ):

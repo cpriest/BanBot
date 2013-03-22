@@ -106,6 +106,12 @@ class RuleSet():
 
 		return s;
 
+	def GetResult( self, Message ):
+		for rule in self.Rules:
+			r = rule.GetResult( Message );
+			if r != Rule.NO_MATCH:
+				return r;
+		return Rule.NO_MATCH;
 
 
 

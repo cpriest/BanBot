@@ -9,6 +9,7 @@ build	http://pypi.python.org/packages/source/p/python-daemon/python-daemon-1.5.5
 build	http://ipaddr-py.googlecode.com/files/ipaddr-2.1.7.tar.gz
 
 pypi	ansicolors
+pypi	http://cheeseshop.python.org/packages/source/p/pyparsing/pyparsing-1.5.5.tar.gz	
 
 service	sendmail	off
 service postfix		on

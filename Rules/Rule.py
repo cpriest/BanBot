@@ -85,6 +85,11 @@ class Rule():
 		- First rule to match wins, rule order matters.
 	'''
 
+	NO_MATCH = 1;
+	ACCEPT = 2;
+	REJECT = 3;
+	DISCARD = 4;
+
 	def __init__( self, rule_text ):
 		self.RuleText = rule_text;
 		self.RuleAction = None;
@@ -100,4 +105,7 @@ class Rule():
 
  	def __str__( self ):
  		return str( self.RuleAction ) if self.RuleAction != None else None;
+
+	def GetResult( self, Message ):
+		return self.NO_MATCH;
 
