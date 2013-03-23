@@ -9,4 +9,4 @@
 from . import Action;
 
 class Accept( Action ):
-	pass;
+	MatchResult = 'Accept';

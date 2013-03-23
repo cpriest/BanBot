@@ -14,3 +14,6 @@ class WhereTo( WhereBase ):
 	Modifiers = {
 		Envelope	: [ ],
 	};
+
+	def MatchesEnvelope( self, Message ):
+		return self.item.Matches( Message.SMTP.Recipients );

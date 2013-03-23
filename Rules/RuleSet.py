@@ -110,8 +110,8 @@ class RuleSet():
 		for rule in self.Rules:
 			r = rule.GetResult( Message );
 			if r != Rule.NO_MATCH:
-				return r;
-		return Rule.NO_MATCH;
+				return r, rule;
+		return Rule.NO_MATCH, None;
 
 
 

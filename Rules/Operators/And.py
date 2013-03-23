@@ -10,4 +10,9 @@ from . import Operator;
 
 class And( Operator ):
 	JoinString = 'AND';
-	pass;
+
+	def Matches( self, Message ):
+		for item in self.items:
+			if( not item.Matches( Message ) ):
+				return False;
+		return True;

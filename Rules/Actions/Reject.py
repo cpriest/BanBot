@@ -10,6 +10,8 @@ from . import Action;
 from pyparsing import ParseResults;
 
 class Reject( Action ):
+	MatchResult = 'Reject';
+
 	DefaultRejectCode = 550;
 	DefaultRjectMessage = "Message rejected.";
 

@@ -49,7 +49,7 @@ start() {
 }
 
 stop() {
-	running || { echo "$NAME is not running" && exit 1; }
+	running || { echo "$NAME is not running" && return 0; }
 	
 	echo -n "Stopping $NAME...";
 

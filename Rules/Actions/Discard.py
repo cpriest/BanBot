@@ -9,4 +9,4 @@
 from . import Action;
 
 class Discard( Action ):
-	pass;
+	MatchResult = 'Discard';

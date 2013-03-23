@@ -16,3 +16,9 @@ class Not( Operator ):
 
  	def __str__( self ):
  		return 'NOT ' + ' '.join( str( x ) for x in self.items );
+
+	def Matches( self, Message ):
+		if( length( self.items ) != 1 ):
+			raise Exception( "NotOperator: self.items does not have a single item, unexpected.  Has %d items:\n%s." % ( length( self.items ), repr( self.items ) ) );
+
+		return not self.items[0].Matches( Message );

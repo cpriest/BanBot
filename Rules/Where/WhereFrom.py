@@ -20,3 +20,11 @@ class WhereFrom( WhereBase ):
 		Routed		: [ ],
 	};
 
+	def MatchesConnected( self, Message ):
+		return False;
+
+	def MatchesEnvelope( self, Message ):
+		return False;
+
+	def MatchesRouted( self, Message ):
+		return False;

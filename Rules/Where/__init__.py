@@ -25,6 +25,10 @@ class WhereBase( RuleBase ):
 		else:
 			self.SetParam( tokens[1] );
 
+		# Validate sub-class has implemented all Matches* functions
+		for Modifier in self.Modifiers.keys():
+			if( 'Matches%s' % Modifier.title() not in dir( self ) ):
+				raise AssertionError( '%s has not implemented method Matches%s for modifier %s.' % ( self.ClassName, Modifier.title(), Modifier ) );
 
 	def SetParam( self, item ):
 		self.item = item;
@@ -43,6 +47,20 @@ class WhereBase( RuleBase ):
 
  	def __str__( self ):
  		return '%s %s' % ( self.Command, str( self.item ) );
+
+
+	"""	Calls the appropriate Matches* function of the sub-class or iterates over them if automatic mode is enabled.
+			Sub-Classes must implement a Matches* for each Modifier presented, such as MatchesEnvelope for WhereFrom. """
+	def Matches( self, Message ):
+		if( self.Modifier == self.Automatic ):
+			for Modifier in self.Modifiers.keys():
+				if getattr( self, 'Matches%s' % Modifier.title() )( Message ):
+					return True;
+
+			return False;
+
+		return getattr( self, 'Matches%s' % self.Modifier.title() )( Message );
+
 
 from WhereFrom import WhereFrom;
 from WhereTo import WhereTo;

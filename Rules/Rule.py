@@ -15,6 +15,8 @@ import os, re;
 from . import RuleBase
 from Parser import ParseRuleStatement, ParseException;
 
+from Actions import *;
+
 class RuleException( Exception ):
 	def __init__( self, rule_object, message, pyparse_exception ):
 		self.Rule = rule_object;
@@ -56,10 +58,10 @@ class Rule():
 
 					[ routed | connected | envelope ] from ( ipMask | domain | emailAddress )
 	
-						connected*	- Indicates that the rule matches against the connecting client
+						connected	- Indicates that the rule matches against the connecting client
 										Valid Data Types: ipMask | domain
 										
-						envelope*	- Indicates that the rule matches against the envelope from address
+						envelope	- Indicates that the rule matches against the envelope from address
 										Valid Data Types: emailAddress
 
 						routed		- Indicates that the rule can match on any entry of a received header
@@ -67,7 +69,7 @@ class Rule():
 					
 					[ envelope ] to ( domain | emailAddress )
 					
-						envelope*	- Indicates that the rule matches against the envelope to address
+						envelope	- Indicates that the rule matches against the envelope to address
 										Valid Data Types: domain | emailAddress
 				
 				{data_type}		- Various match parameter data types
@@ -85,10 +87,10 @@ class Rule():
 		- First rule to match wins, rule order matters.
 	'''
 
-	NO_MATCH = 1;
-	ACCEPT = 2;
-	REJECT = 3;
-	DISCARD = 4;
+	NO_MATCH = Action.NO_MATCH;
+	ACCEPT = Accept.MatchResult;
+	REJECT = Reject.MatchResult;
+	DISCARD = Discard.MatchResult;
 
 	def __init__( self, rule_text ):
 		self.RuleText = rule_text;
@@ -107,5 +109,5 @@ class Rule():
  		return str( self.RuleAction ) if self.RuleAction != None else None;
 
 	def GetResult( self, Message ):
-		return self.NO_MATCH;
+		return self.RuleAction.GetResult( Message );
 

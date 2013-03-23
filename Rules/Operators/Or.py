@@ -10,4 +10,9 @@ from . import Operator;
 
 class Or( Operator ):
 	JoinString = 'OR';
-	pass;
+
+	def Matches( self, Message ):
+		for item in self.items:
+			if( item.Matches( Message ) ):
+				return True;
+		return False;

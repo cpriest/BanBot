@@ -30,11 +30,11 @@ class BanBotMilter( Milter.Base ):
 	# in myMilter instances is referenced.
 	@Milter.noreply
 	def connect( self, hostname, family, hostaddr ):
-		'''
+		"""
 			Examples:
 				(self, 'ip068.subnet71.example.com', AF_INET, ('215.183.71.68', 4720) )
 				(self, 'ip6.mxout.example.com', AF_INET6, ('3ffe:80e8:d8::1', 4720, 1, 0) )
-		'''
+		"""
 		self.Message.SMTP.Client_IP = IPAddress( hostaddr[0] );
 		self.Message.SMTP.Client_Port = hostaddr[1];
 		self.Message.SMTP.Client_Hostname = hostname;    # Name from a reverse IP lookup
@@ -55,14 +55,14 @@ class BanBotMilter( Milter.Base ):
 
 
 	def hello( self, heloname ):
-		''' (self, 'mailout17.dallas.texas.example.com') '''
+		""" (self, 'mailout17.dallas.texas.example.com') """
 		self.Message.SMTP.HELO_NAME = heloname;
 		self.log( "HELO %s" % heloname )
 
 		return self.ProcessRuleSet();
 
 
- 	@Milter.noreply
+	@Milter.noreply
 	def envfrom( self, mailfrom, *str ):
 		self.Message.SMTP.MAIL_FROM = mailfrom.strip( '<>' );
 		self.Message.SMTP.MAIL_FROM_PARAMS = Milter.dictfromlist( str );    # ESMTP params
@@ -103,16 +103,16 @@ class BanBotMilter( Milter.Base ):
 			self.Message.Headers[name] = value;
 
 		if( re.search( r'Received', name, re.IGNORECASE ) ):
- 			try:
- 				ip = IPAddress( re.search( r'(\d+\.\d+\.\d+\.\d+)', value ).group( 1 ) );
+			try:
+				ip = IPAddress( re.search( r'(\d+\.\d+\.\d+\.\d+)', value ).group( 1 ) );
 
- 				if( not ip.is_private ):
- 					self.pwhois( ip );
- 			except AttributeError:
- 				pass;
- 			except Exception as e:
- 				self.log( "While Processing Header:\n%s" % ( value ) );
- 				self.LogException( e );
+				if( not ip.is_private ):
+					self.pwhois( ip );
+			except AttributeError:
+				pass;
+			except Exception as e:
+				self.log( "While Processing Header:\n%s" % ( value ) );
+				self.LogException( e );
 
 		return Milter.CONTINUE;
 
@@ -156,20 +156,20 @@ class BanBotMilter( Milter.Base ):
 
 
 	def close( self ):
-		'''	always called, even when abort is called.	Clean up any external resources here.'''
+		"""	always called, even when abort is called.	Clean up any external resources here."""
 
 		self.Cleanup();
 		return Milter.CONTINUE
 
 
 	def abort( self ):
-		'''Occurs when client disconnected prematurely'''
+		"""Occurs when client disconnected prematurely"""
 
 		return Milter.CONTINUE
 
 
 	def Cleanup( self ):
-		'''Called whenever we are completing this thread (via close)'''
+		"""Called whenever we are completing this thread (via close)"""
 		self.tblWhoisTraces = [ ];
 
 	## === Support Functions ===
@@ -181,7 +181,13 @@ class BanBotMilter( Milter.Base ):
 			Rule.DISCARD : Milter.DISCARD,
 			Rule.NO_MATCH : Milter.CONTINUE,
 		};
-		return map[self.ActiveRuleset.GetResult( self.Message )];
+		result, rule = self.ActiveRuleset.GetResult( self.Message );
+		milter_result = map[result];
+
+		if( milter_result != Milter.CONTINUE ):
+			self.log( '%sed by rule: %s' % ( result, str( rule ) ) );
+
+		return milter_result;
 
 
 

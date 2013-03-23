@@ -14,21 +14,35 @@ from .. import RuleBase;
 
 class MatchType( RuleBase ):
 	def __init__( self, token ):
-		self.token = token;
 		self.SetToken( token );
 
 	def SetToken( self, token ):
-		self.token = token;
+		self.token = token.lower();
 
 	# For some reason pyparsing wants __getitem__ and passes 0 as key?  Just return None
 	def __getitem__( self, key ):
 		return None;
 
- 	def __repr__( self ):
- 		return "%s('%s')" % ( self.ClassName, self.token );
+	def __repr__( self ):
+		return "%s('%s')" % ( self.ClassName, self.token );
 
- 	def __str__( self ):
- 		return str( self.token );
+	def __str__( self ):
+		return str( self.token );
+
+	def Matches( self, Content ):
+		if( isinstance( Content, type( [] ) ) ):
+			for ContentItem in Content:
+				if( self.MatchesContentItem( ContentItem ) ):
+					return True;
+			return False;
+
+		return self.MatchesContentItem( Content );
+
+	# Default implementation is a simple lower case "contains", other type sub-classes can over-ride to provide other types of comparisons
+	def MatchesContentItem( self, ContentItem ):
+		return ContentItem.lower().find( self.token ) != -1;
+
+
 
 from Domain import Domain;
 from Email import Email;
