@@ -1,15 +1,15 @@
-import milter
-import Milter
 import StringIO
 import time
-import email
-import re, sys, traceback, shlex, os
-
-from ipaddr import IPAddress, IPNetwork
-from socket import AF_INET, AF_INET6, gethostbyaddr
-from Milter.utils import parse_addr
+import re
+import traceback
+import shlex
+import os
+from socket import AF_INET6, gethostbyaddr
 from subprocess import Popen, PIPE;
-from pprint import pformat;
+
+import Milter
+from ipaddr import IPAddress
+
 
 # pklib Imports
 from pklib import *;
@@ -23,33 +23,33 @@ class BanBotMilter( Milter.Base ):
 	def __init__( self, rule_set ):    # A new instance with each new connection.
 		self.id = Milter.uniqueID();    # Integer incremented with each call.
 		self.Message = AttrDict();    # Stores current known email information
-		self.ActiveRuleset = rule_set;
+		self.ActiveRuleSet = rule_set;
 
 	# each connection runs in its own thread and has its own myMilter
 	# instance.	Python code must be thread safe.	This is trivial if only stuff
 	# in myMilter instances is referenced.
 	@Milter.noreply
-	def connect( self, hostname, family, hostaddr ):
+	def connect( self, hostname, family, host_addr ):
 		"""
 			Examples:
 				(self, 'ip068.subnet71.example.com', AF_INET, ('215.183.71.68', 4720) )
 				(self, 'ip6.mxout.example.com', AF_INET6, ('3ffe:80e8:d8::1', 4720, 1, 0) )
 		"""
-		self.Message.SMTP.Client_IP = IPAddress( hostaddr[0] );
-		self.Message.SMTP.Client_Port = hostaddr[1];
+		self.Message.SMTP.Client_IP = IPAddress( host_addr[0] );
+		self.Message.SMTP.Client_Port = host_addr[1];
 		self.Message.SMTP.Client_Hostname = hostname;    # Name from a reverse IP lookup
 		self.Message.SMTP.Server_Hostname = self.getsymval( 'j' );
 		self.Message.SMTP.Recipients = [ ];
 		self.Message.Raw = StringIO.StringIO();
 
 		# IPv6 Information
-		self.Message.SMTP.Client_IP_Flow = family == AF_INET6 and hostaddr[2] or None;
-		self.Message.SMTP.Client_IP_Scope = family == AF_INET6 and hostaddr[3] or None;
+		self.Message.SMTP.Client_IP_Flow = family == AF_INET6 and host_addr[2] or None;
+		self.Message.SMTP.Client_IP_Scope = family == AF_INET6 and host_addr[3] or None;
 
 
 		self.tblWhoisTraces = [ ];
 
-		self.log( "connect from %s at %s" % ( hostname, hostaddr ) )
+		self.log( "connect from %s at %s" % ( hostname, host_addr ) )
 
 		return self.ProcessRuleSet();
 
@@ -63,24 +63,24 @@ class BanBotMilter( Milter.Base ):
 
 
 	@Milter.noreply
-	def envfrom( self, mailfrom, *str ):
+	def envfrom( self, mailfrom, *ESMTP_params ):
 		self.Message.SMTP.MAIL_FROM = mailfrom.strip( '<>' );
-		self.Message.SMTP.MAIL_FROM_PARAMS = Milter.dictfromlist( str );    # ESMTP params
+		self.Message.SMTP.MAIL_FROM_PARAMS = Milter.dictfromlist( ESMTP_params );    # ESMTP params
 		self.Message.SMTP.AUTH_USER = self.getsymval( '{auth_authen}' );    # Authenticated User
 # 		self.canon_from = '@'.join( parse_addr( mailfrom ) )
 # 		self.Message.Raw.write( 'From %s %s\n' % ( self.canon_from, time.ctime() ) )
 		self.Message.Raw.write( 'From %s %s\n' % ( self.Message.SMTP.MAIL_FROM, time.ctime() ) )
 
-		self.log( "mail from:", self.Message.SMTP.MAIL_FROM, *str )
+		self.log( "mail from:", self.Message.SMTP.MAIL_FROM, *ESMTP_params )
 
 		return self.ProcessRuleSet();
 
 
-	def envrcpt( self, to, *str ):
+	def envrcpt( self, to, *ESMTP_params ):
 		self.Message.SMTP.Recipients.append( to );
 
-# 		self.Message.SMTP.RCPT_TO_PARAMS = Milter.dictfromlist(str);
-# 		rcptinfo = to, Milter.dictfromlist(str);
+# 		self.Message.SMTP.RCPT_TO_PARAMS = Milter.dictfromlist(ESMTP_params);
+# 		rcptinfo = to, Milter.dictfromlist(ESMTP_params);
 
 		try:
 			Friendly, Email = re.search( r'^(?:["\'](.+)["\']\s*)?<([^>]+)>$', to ).groups();
@@ -108,11 +108,8 @@ class BanBotMilter( Milter.Base ):
 
 				if( not ip.is_private ):
 					self.pwhois( ip );
-			except AttributeError:
-				pass;
-			except Exception as e:
-				self.log( "While Processing Header:\n%s" % ( value ) );
-				self.LogException( e );
+			except AttributeError:	pass;
+			except:	self.LogException("While Processing Header:\n%s" % ( value ) );
 
 		return Milter.CONTINUE;
 
@@ -175,14 +172,14 @@ class BanBotMilter( Milter.Base ):
 	## === Support Functions ===
 
 	def ProcessRuleSet( self ):
-		map = {
+		tMap = {
 			Rule.ACCEPT : Milter.ACCEPT,
 			Rule.REJECT : Milter.REJECT,
 			Rule.DISCARD : Milter.DISCARD,
 			Rule.NO_MATCH : Milter.CONTINUE,
 		};
-		result, rule = self.ActiveRuleset.GetResult( self.Message );
-		milter_result = map[result];
+		result, rule = self.ActiveRuleSet.GetResult( self.Message );
+		milter_result = tMap[result];
 
 		if( milter_result != Milter.CONTINUE ):
 			self.log( '%sed by rule: %s' % ( result, str( rule ) ) );
@@ -197,7 +194,7 @@ class BanBotMilter( Milter.Base ):
 
 
 	# #
-	# # Custom Functions from mailfromd
+	# # Custom Functions
 	# #
 
 	# # Returns true if the given email is a revoked email address
@@ -241,7 +238,7 @@ class BanBotMilter( Milter.Base ):
 				name, value = re.search( r'^([^:]+):(.*)$', line ).groups();
 				hResult[name] = value;
 			except:
-				self.log( "Could not proccess whois line:\n  " + line.trim() );
+				self.log( "Could not process whois line:\n  " + line.trim() );
 
 		try:
 			hResult['hostname'] = gethostbyaddr( str( ip ) )[0];
@@ -255,6 +252,6 @@ class BanBotMilter( Milter.Base ):
 		return hResult;
 
 
-	def LogException( self, e ):
-		self.log( traceback.format_exc() );
+	def LogException( self, msg ):
+		self.log( msg + os.linesep + traceback.format_exc() );
 

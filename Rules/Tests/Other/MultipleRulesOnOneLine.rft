@@ -1,7 +1,7 @@
 Tests that multiple rules on one line are allowed
 
 --RULE--
-# Multple Rules on One Line
+# Multiple Rules on One Line
 discard when to noc@; discard when to noc@ && from 1.1.1.1/32 || from 1.1.1.2 && from 1.1.1.3;
 
 --EXPECT--

@@ -8,7 +8,6 @@
 
 from __future__ import print_function;
 
-import traceback, re, inspect;
 from pyparsing import *;
 
 from Operators import *;
@@ -17,6 +16,7 @@ from Where import *;
 from Types import *;
 
 
+# noinspection PyUnusedLocal
 def DumpParseActions( line, pos, tokens ):
 	print( tokens.getName(), tokens );
 	print( '-----' );

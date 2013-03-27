@@ -14,6 +14,7 @@ from .. import RuleBase;
 
 class Action( RuleBase ):
 	NO_MATCH = 'NoMatch';
+	MatchResult = NO_MATCH;
 
 	def __init__( self, token ):
 		self.item = token;
@@ -23,10 +24,10 @@ class Action( RuleBase ):
 		return self.ClassName.lower();
 
 	def __repr__( self ):
- 		return "%s %s" % ( self.ClassName, repr( self.item ) );
+		return "%s %s" % ( self.ClassName, repr( self.item ) );
 
- 	def __str__( self ):
- 		return '%s when %s;' % ( self.Command, str( self.item ) );
+	def __str__( self ):
+		return '%s when %s;' % ( self.Command, str( self.item ) );
 
 	def GetResult( self, Message ):
 		return self.item.Matches( Message ) and self.MatchResult or self.NO_MATCH;

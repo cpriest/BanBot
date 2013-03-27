@@ -13,7 +13,7 @@ class Reject( Action ):
 	MatchResult = 'Reject';
 
 	DefaultRejectCode = 550;
-	DefaultRjectMessage = "Message rejected.";
+	DefaultRejectMessage = "Message rejected.";
 
 	def __init__( self, tokens ):
 		self.RejectCode = False;
@@ -30,9 +30,9 @@ class Reject( Action ):
 	@property
 	def Command( self ):
 		if( self.RejectCode == False ):
-			return Action.Command.fget( self );
+			return super(Reject, self).Command;
 
 		if( self.RejectMessage == False ):
-			return '%s with %d' % ( Action.Command.fget( self ), self.RejectCode );
-		return '%s with %d "%s"' % ( Action.Command.fget( self ), self.RejectCode, self.RejectMessage );
+			return '%s with %d' % ( super(Reject, self).Command, self.RejectCode );
+		return '%s with %d "%s"' % ( super(Reject, self).Command, self.RejectCode, self.RejectMessage );
 

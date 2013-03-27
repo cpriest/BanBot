@@ -8,21 +8,18 @@
 
 # System Imports
 from __future__ import print_function;
-import re, traceback;
+import re, sys, traceback;
 
 # Pypi Imports
-from colors import *;
 
 # pklib Imports
-import pklib.Output;
 from pklib.Output import *;
 
 # Package Imports
 from Rule import *;
-from Parser import ParseRuleStatement, ParseException;
 
 class RuleSet():
-	'''	Represents a set of rules '''
+	"""	Represents a set of rules """
 
 	NORMAL 	 = 0;
 	STRICT 	 = 1;
@@ -45,7 +42,7 @@ class RuleSet():
 		inputString = self._StripComments( inputString ).strip();
 
 		# Yields a rule statement per iteration from file
- 		def readrule( inputString ):
+		def readrule( inputString ):
 			for rule in inputString.split( ';' ):
 				if( len( rule.strip() ) ):
 					yield ( rule + ';' ).strip();
@@ -56,34 +53,34 @@ class RuleSet():
 			print( 'RuleSet Input:', indent( inputString ),
 				'', 		'==============================', 		'', 	sep='\n' );
 
- 		for rule_text in splitRules:
- 			try:
- 				if( self.Mode == RuleSet.TEST ):
- 					print( 'Rule Input:', indent( rule_text ), '', sep='\n' );
+		for rule_text in splitRules:
+			try:
+				if( self.Mode == RuleSet.TEST ):
+					print( 'Rule Input:', indent( rule_text ), '', sep='\n' );
 
- 				rule_object = Rule( rule_text );
+				rule_object = Rule( rule_text );
 
- 				if( self.Mode == RuleSet.TEST ):
- 					print( 'Rule Result:', indent( repr( rule_object ) ), '', sep='\n' );
- 					print( 'Rule Text From Result:', indent( str( rule_object ) ),
+				if( self.Mode == RuleSet.TEST ):
+					print( 'Rule Result:', indent( repr( rule_object ) ), '', sep='\n' );
+					print( 'Rule Text From Result:', indent( str( rule_object ) ),
 						'', '==============================', '', sep='\n' );
 
 				self.Rules.append( rule_object );
 
-		 	except RuleException as e:
-		 		print( "Exception while parsing rule:" );
-		 		print( indent( str( e ) ) );
+			except RuleException as e:
+				print( "Exception while parsing rule:" );
+				print( indent( str( e ) ) );
 
-		 	except Exception:
-		 		print( "Exception while processing rule:" );
-		 		print( indent( rule_text ) );
-		 		traceback.print_exc( file=sys.stdout );
+			except Exception:
+				print( "Exception while processing rule:" );
+				print( indent( rule_text ) );
+				traceback.print_exc( file=sys.stdout );
 
 		return self;
 
 
 	def LoadFromFile( self, Filepath ):
-		''' Loads rules from the given Filepath'''
+		""" Loads rules from the given Filepath"""
 		with open( Filepath, 'r' ) as fh:
 			self.ParseString( fh.read() );
 		return self;
@@ -100,7 +97,7 @@ class RuleSet():
 		# Strip Comments
 		s = re.sub( r'\s*#.+', '', s );
 
-		# Unproxy double-quoted strings
+		# Un-proxy double-quoted strings
 		for index, item in enumerate( dqs ):
 			s = s.replace( '![{' + str( index ) + '}]!', item );
 

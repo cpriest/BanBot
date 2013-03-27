@@ -6,12 +6,14 @@
 #
 #
 
+from ipaddr import IPNetwork;
+
 from . import MatchType;
-from ipaddr import IPAddress, IPNetwork;
 
 class IPMask( MatchType ):
 	def SetToken( self, token ):
+		super(IPMask, self).SetToken(token);
 		self.IpAddress = IPNetwork( token );
 
- 	def __str__( self ):
- 		return str( self.IpAddress );
+	def __str__( self ):
+		return str( self.IpAddress );

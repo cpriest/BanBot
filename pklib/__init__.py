@@ -10,7 +10,7 @@ import pprint;
 
 
 class Terminal():
-	''' Represents Console/Terminal settings on linux hosts'''
+	""" Represents Console/Terminal settings on linux hosts"""
 
 	def __init__( self ):
 		self.__Height = self.__Width = None;
@@ -23,13 +23,13 @@ class Terminal():
 
 	@property
 	def Width( self ):
-		if( self.__Width == None ):
+		if( self.__Width is None ):
 			self._getTerminalSize();
 		return int( self.__Width );
 
 	@property
 	def Height( self ):
-		if( self.__Width == None ):
+		if( self.__Width is None ):
 			self._getTerminalSize();
 		return int( self.__Width );
 
@@ -39,7 +39,7 @@ Terminal = Terminal();
 
 
 class Object( object ):
-	'''Base object class containing what I think should be in all objects'''
+	"""Base object class containing what I think should be in all objects"""
 
 	@property
 	def ClassName( self ):
@@ -48,9 +48,9 @@ class Object( object ):
 
 
 class AttrDict( dict, Object ):
-	'''		AttrDict() is a dictionary with additional features
+	"""		AttrDict() is a dictionary with additional features
 				- Allows access to the dictionary in . or [ ] form
-				- Otherwise un-initialized entries are automatically created as sub AttrDict() objects'''
+				- Otherwise un-initialized entries are automatically created as sub AttrDict() objects"""
 
 	def __init__( self, *args, **kwargs ):
 		super( AttrDict, self ).__init__( *args, **kwargs );
@@ -66,18 +66,17 @@ class AttrDict( dict, Object ):
 
 
 def pp( *args, **kwargs ):
-	'''Alias for pprint.pprint() with preferred defaults'''
+	"""Alias for pprint.pprint() with preferred defaults"""
 
 	if( 'width' not in kwargs ):
 		kwargs['width'] = 5;
 	return pprint.pprint( *args, **kwargs );
 
 def pf( *args, **kwargs ):
-	'''Alias for pprint.pformat() with preferred defaults'''
+	"""Alias for pprint.pformat() with preferred defaults"""
 
 	if( 'width' not in kwargs ):
 		kwargs['width'] = 5;
 	return pprint.pformat( *args, **kwargs );
 
-
-__all__ = [ 'Terminal', 'AttrDict', 'pf' ];
+__all__ = [ 'Terminal', 'AttrDict', 'pf', 'pp' ];

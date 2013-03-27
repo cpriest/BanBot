@@ -7,17 +7,15 @@
 #
 
 from __future__ import print_function;
-import os, sys;
-from pprint import pprint;
 
 # Package Imports
 from . import Terminal;
 
-def indent( input, indentWith='\t' ):
-	if( type( input ) == str ):
-		input = input.splitlines( True );
+def indent( inp, indentWith='\t' ):
+	if( type( inp ) == str ):
+		inp = inp.splitlines( True );
 
-	return ''.join( [ indentWith + line for line in input ] );
+	return ''.join( [ indentWith + line for line in inp ] );
 
 def Header( s ):
 	print( s, '-' * len( s ), sep='\n' );

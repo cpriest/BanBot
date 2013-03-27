@@ -7,14 +7,13 @@
 #
 
 class RuleBase( object ):
-	'''Base object for all Rule handling objects'''
+	"""Base object for all Rule handling objects"""
 
 	@property
 	def ClassName( self ):
 		return self.__class__.__name__;
 
 from Rule import *;
-from RuleFile import *;
 from RuleSet import *;
 
-__all__ = [ 'Rule', 'RuleSet', 'RuleFile'];
+__all__ = [ 'Rule', 'RuleSet'];

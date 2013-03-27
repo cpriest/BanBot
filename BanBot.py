@@ -17,7 +17,7 @@
 from __future__ import print_function;
 
 # Standard Libraries
-import StringIO, time, re, sys, traceback, shlex, os, subprocess, argparse;
+import time, sys, traceback, os, subprocess, argparse;
 from argparse import ArgumentParser;
 from threading import Thread;
 
@@ -26,7 +26,6 @@ import milter, Milter;
 
 # BanBot Imports
 from BanBotMilter import *;
-from Rules import *;
 
 # pklib Imports
 from pklib.Script import *;
@@ -40,6 +39,10 @@ sys.argv[0] = os.path.abspath( sys.argv[0] );
 ChannelLogger.AllChannels = ['proc', 'libmilter', 'watcher', 'signals', 'all'];
 
 class CommandLineArguments( ArgumentParser ):
+	# @IDEA-BUG - pwd, grp only available on linux?
+	# @IDEA-BUG - os.getuid() not defined in stub
+	# @IDEA-BUG - os.getgid() not defined in stub
+	# noinspection PyUnresolvedReferences
 	def __init__( self ):
 		ArgumentParser.__init__( self, description='BanBot Milter' );
 
@@ -55,7 +58,7 @@ class CommandLineArguments( ArgumentParser ):
 
 		self.args = vars( self.parse_args() );
 
-		if( self.user != None ):
+		if( self.user is not None ):
 			import pwd;
 
 			Error = 'Cannot set user (-u %s)' % self.user;
@@ -68,7 +71,7 @@ class CommandLineArguments( ArgumentParser ):
 		else:
 			self.uid = os.getuid();
 
-		if( self.group != None ):
+		if( self.group is not None ):
 			import grp;
 
 			Error = 'Cannot set group (-g %s)' % self.group;
@@ -82,7 +85,7 @@ class CommandLineArguments( ArgumentParser ):
 		else:
 			self.gid = os.getgid();
 
-		if( self.chroot != None and not os.path.exists( self.chroot ) ):
+		if( self.chroot is not None and not os.path.exists( self.chroot ) ):
 			self.ExitError( 'Cannot chroot (-C %s), directory does not exist.' % self.chroot );
 
 		self.logfile and self.CreateOwnFile( self.logfile );
@@ -93,6 +96,8 @@ class CommandLineArguments( ArgumentParser ):
 		if( Filepath ):
 			if( not os.path.exists( Filepath ) ):
 				with open( Filepath, 'w' ): pass;
+			# @IDEA-BUG - os.chown() not defined in stub
+			# noinspection PyUnresolvedReferences
 			os.chown( Filepath, self.uid, self.gid );
 
 
@@ -107,8 +112,8 @@ class CommandLineArguments( ArgumentParser ):
 		return str( self.args );
 
 
-	def ExitError( self, msg, IgnoredExceptions=[ ] ):
-		if( sys.exc_info()[0] not in IgnoredExceptions and sys.exc_info()[0] != None ):
+	def ExitError( self, msg, IgnoredExceptions=() ):
+		if( sys.exc_info()[0] not in IgnoredExceptions and sys.exc_info()[0] is not None ):
 			sys.stderr.write( ''.join( '!! %s \n' % line for line in traceback.format_exc().split( '\n' )[:-1] ) + '\n' );
 		sys.stderr.write( msg + '\n' );
 		sys.exit( 1 );
@@ -116,10 +121,8 @@ class CommandLineArguments( ArgumentParser ):
 CommandLineArgs = CommandLineArguments();
 
 
-
-
 class MilterThread( Thread ):
-	'''	Wraps a sendmail milter instance in a thread to prevent the sendmail library from stealing all signals'''
+	"""	Wraps a sendmail milter instance in a thread to prevent the sendmail library from stealing all signals"""
 
 	def __init__( self, rule_set ):
 		Thread.__init__( self );
@@ -141,7 +144,7 @@ class MilterThread( Thread ):
 		flags = Milter.CHGBODY + Milter.CHGHDRS + Milter.ADDHDRS;
 		flags += Milter.ADDRCPT;
 		flags += Milter.DELRCPT;
-	 	Milter.set_flags( flags );    # tell Sendmail which features we use
+		Milter.set_flags( flags );    # tell Sendmail which features we use
 
 		Milter.runmilter( "pythonfilter", socketname, timeout );
 
@@ -157,7 +160,7 @@ class MilterThread( Thread ):
 
 
 
-'''	Base script file for all BanBot instances '''
+# Base script file for all BanBot instances
 class BanBotScript( Script ):
 
 	def __init__( self ):
@@ -175,7 +178,7 @@ class BanBotScript( Script ):
 
 
 
-'''	Watches that the BanBotProcess is always running, if it dies, the water will re-start it'''
+# Watches that the BanBotProcess is always running, if it dies, the water will re-start it
 class BanBotWatcher( BanBotScript ):
 
 	def __init__( self ):
@@ -193,26 +196,26 @@ class BanBotWatcher( BanBotScript ):
 		ExceptionCount = 0;
 		while not self.ExitEvent.is_set():
 			try:
-				if( self.ChildProc == None ):
+				if( self.ChildProc is None ):
 					self.StartChild();
 
 				time.sleep( 1 );
 
-				if( self.ChildProc != None ):
+				if( self.ChildProc is not None ):
 					self.ChildProc.poll();
-					if( self.ChildProc.returncode != None ):
+					if( self.ChildProc.returncode is not None ):
 						self.log.watcher( "Child process pid=%d has exited (%d)." % ( self.ChildProc.pid, self.ChildProc.returncode ) );
 						self.ChildProc = None;
 
- 			except Exception as e:
- 				ExceptionCount += 1;
- 				self.log.watcher( "Terminating Child, Caught exception:" );
- 				print( traceback.format_exc() );
- 				self.TerminateChild();
+			except:
+				ExceptionCount += 1;
+				self.log.watcher( "Terminating Child, Caught exception:" );
+				self.log.watcher( traceback.format_exc() );
+				self.TerminateChild();
 
- 				if( ExceptionCount > 5 ):
- 					print( "Too many exceptions, exit(1);" );
- 					exit( 1 );
+				if( ExceptionCount > 5 ):
+					print( "Too many exceptions, exit(1);" );
+					exit( 1 );
 
 		# Exiting
 		self.TerminateChild();
@@ -226,16 +229,16 @@ class BanBotWatcher( BanBotScript ):
 			args += [ '-dc' ] + CommandLineArgs.logchannels;
 
 		self.ChildProc = subprocess.Popen( args,
-								stdout=open( CommandLineArgs.logfile, 'a+', 1 ),
-								stderr=open( CommandLineArgs.logfile, 'a+', 1 ), env=None, close_fds=True );
+								stdout=open( CommandLineArgs.logfile, 'a+' ),
+								stderr=open( CommandLineArgs.logfile, 'a+' ), close_fds=True );
 		self.log.watcher( "Started Process, pid=%d" % self.ChildProc.pid );
 
 
 	def TerminateChild( self, sig=signal.SIGTERM ):
-		if( self.ChildProc == None ):
+		if( self.ChildProc is None ):
 			return;
 
-		if( self.ChildProc.returncode == None ):
+		if( self.ChildProc.returncode is None ):
 			self.log.watcher( "Terminating child pid=%d" % ( self.ChildProc.pid ) );
 			os.kill( self.ChildProc.pid, sig );
 			self.ChildProc.wait();
@@ -244,21 +247,24 @@ class BanBotWatcher( BanBotScript ):
 		self.ChildProc = None;
 
 
+	# noinspection PyUnusedLocal
 	def OnSignal_QUIT( self, signum, frame ):
 		os.system( 'echo "test" | mail -s "test" milter-test@zerocue.com >/dev/null 2>&1 &' );
 		self.log( "Sent email to milter-test@zerocue.com\n" );
 
-
+	# noinspection PyUnusedLocal
 	def OnSignal_HUP( self, signum, frame ):
 		self.log.signals( "Reloading... (HUP SIGNAL)" );
+		# @IDEA-BUG signal.SIGHUP is not defined in stub
+		# noinspection PyUnresolvedReferences
 		self.TerminateChild( signal.SIGHUP );
 
-
+	# noinspection PyUnusedLocal
 	def OnSignal_INT( self, signum, frame ):
 		self.log.signals( "(SIGINT Caught, Exiting)" );
 		self.ExitEvent.set();
 
-
+	# noinspection PyUnusedLocal
 	def OnSignal_TERM( self, signum, frame ):
 		self.log.signals( "(SIGTERM Caught, Exiting)" );
 		self.ExitEvent.set();
@@ -266,7 +272,7 @@ class BanBotWatcher( BanBotScript ):
 
 
 
-''' Script which starts a MilterThread and responds to unix signals'''
+# Script which starts a MilterThread and responds to unix signals
 class BanBotProcess( BanBotScript ):
 
 	def __init__( self ):
@@ -282,22 +288,25 @@ class BanBotProcess( BanBotScript ):
 		ExecutionThread.quit();
 		self.log.libmilter( "Stopped Milter..." );
 
+	# noinspection PyUnusedLocal
 	def OnSignal_HUP( self, signum, frame ):
 		self.log.signals( "Reloading... (HUP SIGNAL)" );
 		self.ExitEvent.set();
 
+	# noinspection PyUnusedLocal
 	def OnSignal_INT( self, signum, frame ):
 		self.log.signals( "(SIGINT Caught, Exiting)" );
 		self.ExitEvent.set();
 
+	# noinspection PyUnusedLocal
 	def OnSignal_TERM( self, signum, frame ):
 		self.log.signals( "(SIGTERM Caught, Exiting)" );
 		self.ExitEvent.set();
 
 
 if( __name__ == "__main__" ):
- 	if( CommandLineArgs.mode == 'watch' ):
- 		BanBotWatcher();
- 	else:
- 		BanBotProcess();
+	if( CommandLineArgs.mode == 'watch' ):
+		BanBotWatcher();
+	else:
+		BanBotProcess();
 

@@ -9,32 +9,26 @@
 
 # Future Imports
 from __future__ import print_function;
-import sys;
 
 # System Imports
-import sys, os, traceback;
-from pprint import pprint;
+import os;
 from argparse import ArgumentParser;
 
 # Pypi Imports
 from colors import *;
 
-
 if __name__ != '__main__':
 	print( "This script is intended to be called directly, not imported" );
 	exit( 1 );
-
-# Allow relative imports when run directly
-sys.path[0] = os.path.abspath( sys.path[0] + os.sep + '..' );
-import Rules;
-__package__ = 'Rules';
+#
+# # Allow relative imports when run directly
+# sys.path[0] = os.path.abspath( sys.path[0] + os.sep + '..' );
+# __package__ = 'Rules';
 
 # pklib Imports
-from pklib import *;
 
 # Package Imports
-from . import *;
-from Testing import *;
+from Rules.Testing import *;
 
 class CommandLineArguments( ArgumentParser ):
 	def __init__( self ):
@@ -46,7 +40,7 @@ class CommandLineArguments( ArgumentParser ):
 
 
 	def __getattr__( self, name ):
-		'''Returns the given parameter if it exists or None otherwise'''
+		"""Returns the given parameter if it exists or None otherwise"""
 		try:
 			return self.args[name];
 		except:
@@ -64,19 +58,19 @@ __dir__ = os.path.abspath( os.path.dirname( __file__ ) );
 test_files = [ ];
 
 # Find all test files ending in .rft
-for root, dirs, files in os.walk( os.path.join( __dir__, 'Tests' ) ):
+for root, dirs, files in os.walk( os.path.join( __dir__, 'Rules/Tests') ):
 	test_files += [ os.path.join( root, filename )
 		for filename in files
 			if filename.endswith( '.rft' )
-				and ( re.match( CommandLineArguments.filter, filename ) != None
-						if CommandLineArguments.filter != None else True )
+				and ( re.match( CommandLineArguments.filter, filename ) is not None
+					  if CommandLineArguments.filter is not None else True )
 	];
 
 
 # Initialize test_result keys to empty arrays
 test_results = { };
-for title, type in RuleFileTest.ResultTypes.iteritems():
-	test_results[type] = [ ];
+for title, result_type in RuleFileTest.ResultTypes.iteritems():
+	test_results[result_type] = [ ];
 
 
 # Run the tests
@@ -90,6 +84,7 @@ for filepath in test_files:
 	except TestException:
 		print( '!', end='' );
 
+#	pp(vars(rft));
 	test_results[rft.ResultCategory].append( rft );
 
 print( end='\n\n' );
@@ -97,18 +92,18 @@ print( end='\n\n' );
 
 
 Header( 'Test Results Summary' );
-for title, type in RuleFileTest.ResultTypes.iteritems():
- 	print( '%10.10s: %d' % ( title, len( test_results[type] ) ) );
+for title, result_type in RuleFileTest.ResultTypes.iteritems():
+	print( '%10.10s: %d' % ( title, len( test_results[result_type] ) ) );
 
 
 
 
-if( len( test_results[RuleFileTest.Failed] ) > 0 ):
+if( len( test_results[RuleFileTest.RESULT_Failed] ) > 0 ):
 	print( '\n' );
 
 	Header( 'Failures' );
-	for rft in test_results[RuleFileTest.Failed]:
-		if rft.COMMENTS != None:
+	for rft in test_results[RuleFileTest.RESULT_Failed]:
+		if rft.COMMENTS is not None:
 			Section( rft.COMMENTS[0], lambda s: yellow( s, style='bold' ), expand_char=' ' ) ;
 		Section( 'File: ' + rft.Filepath, lambda s: yellow( s, style='bold' ), expand_char=' ' );
 		print( rft.FullColorDiff + '\n' );
@@ -118,12 +113,12 @@ if( len( test_results[RuleFileTest.Failed] ) > 0 ):
 		print( ''.join( rft.Results ), '\n' );
 
 
-if( len( test_results[RuleFileTest.Exception] ) > 0 ):
+if( len( test_results[RuleFileTest.RESULT_Exception] ) > 0 ):
 	print( '\n' );
 
 	Header( 'Exceptions' );
-	for rft in test_results[RuleFileTest.Exception]:
-		if rft.COMMENTS != None:
+	for rft in test_results[RuleFileTest.RESULT_Exception]:
+		if rft.COMMENTS is not None:
 			Section( rft.COMMENTS[0], lambda s: yellow( s, style='bold' ), expand_char=' ' ) ;
 		Section( 'File: ' + rft.Filepath, lambda s: yellow( s, style='bold' ), expand_char=' ' );
 		print( '\t' + str( rft.Exception ) );

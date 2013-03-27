@@ -7,11 +7,17 @@
 #
 
 from __future__ import print_function;
-import sys, os, signal, shlex, subprocess, time, threading;
+import os
+import signal
+import threading
+
 import daemon;    # http://pypi.python.org/packages/source/p/python-daemon/python-daemon-1.5.5.tar.gz
+
 
 class Script:
 	def __init__( self ):
+		# @IDEA-BUG - os.getppid() stub missing
+		# noinspection PyUnresolvedReferences
 		self.ppid = os.getppid();
 		self.ExitEvent = threading.Event();
 
@@ -31,18 +37,23 @@ class Script:
 	def OnExit( self ):
 		pass;
 
-
 	def __InstallSignals( self ):
 		if( 'OnSignal_QUIT' in dir( self ) ):
+			# @IDEA-BUG - signal.SIGQUIT
+			# noinspection PyUnresolvedReferences
 			signal.signal( signal.SIGQUIT, self.OnSignal_QUIT );
 
 		if( 'OnSignal_TERM' in dir( self ) ):
+			# noinspection PyUnresolvedReferences
 			signal.signal( signal.SIGTERM, self.OnSignal_TERM );
 
 		if( 'OnSignal_HUP' in dir( self ) ):
+			# @IDEA-BUG - signal.SIGHUP
+			# noinspection PyUnresolvedReferences
 			signal.signal( signal.SIGHUP, self.OnSignal_HUP );
 
 		if( 'OnSignal_INT' in dir( self ) ):
+			# noinspection PyUnresolvedReferences
 			signal.signal( signal.SIGINT, self.OnSignal_INT );
 
 
@@ -50,23 +61,23 @@ class Script:
 		args = {
 			'uid': 				DaemonArgs.uid,
 			'gid': 				DaemonArgs.gid,
-			'stdin':  			open( stdin, 'r+', 1 ) if stdin != None else None,
-			'stdout': 			open( stdout, 'a+', 1 ) if stdout != None else None,
-			'stderr': 			open( stderr, 'a+', 1 ) if stderr != None else None,
+			'stdin':  			open( stdin, 'r+', 1 ) if stdin is not None else None,
+			'stdout': 			open( stdout, 'a+', 1 ) if stdout is not None else None,
+			'stderr': 			open( stderr, 'a+', 1 ) if stderr is not None else None,
 # 			'pidfile': 			PIDLockFile(DaemonArgs.pidfile) if DaemonArgs.pidfile != None else None,
 			'files_preserve':	files_preserve,
 			'signal_map'	:	{ },
 		};
- 		self.DaemonContext = daemon.DaemonContext( **args );
- 		self.DaemonContext.open();
+		self.DaemonContext = daemon.DaemonContext( **args );
+		self.DaemonContext.open();
 
- 		if( DaemonArgs.pidfile ):
- 			pf = open( DaemonArgs.pidfile, 'w+' );
- 			pf.write( str( os.getpid() ) );
- 			pf.close();
+		if( DaemonArgs.pidfile ):
+			pf = open( DaemonArgs.pidfile, 'w+' );
+			pf.write( str( os.getpid() ) );
+			pf.close();
 
 
- 	def __del__( self ):
+	def __del__( self ):
 		try:
 			self.DaemonContext.close();
 		except:

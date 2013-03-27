@@ -6,12 +6,13 @@
 #
 #
 
-import time, os;
+import time
+import os
 
 class ChannelLogger():
-	'''
+	"""
 		Channel Logger is designed to allow for channel based logging
-		
+
 		Creation Arguments
 			Pattern			String representing the output pattern, supports:
 								%T - Current time in format of '%Y %b %d %H:%M:%S'
@@ -20,15 +21,15 @@ class ChannelLogger():
 								%m - The arguments passed to the logger
 
 			Channels		Array of strings which are sent to stdout
-								
+
 			Example:
 				logger = ChannelLogger(Channels='debug1');
-				
+
 				logger("Always show message");
 				logger.debug1("Will show message");
 				logger.debug2("Ignored message");
-	'''
-	def __init__( self, Pattern='%T %m', Channels=[] ):
+	"""
+	def __init__( self, Pattern='%T %m', Channels=() ):
 		self.Pattern = Pattern;
 		self.Channels = Channels;
 
@@ -37,7 +38,7 @@ class ChannelLogger():
 		pass;
 
 	def __getattr__( self, Channel ):
-		if( self.Channels != None and ( Channel in self.Channels or 'all' in self.Channels ) ):
+		if( self.Channels is not None and ( Channel in self.Channels or 'all' in self.Channels ) ):
 			def logMessage( *args ):
 				self._logMessage( Channel, *args );
 			return logMessage;

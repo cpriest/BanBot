@@ -20,6 +20,7 @@ class MatchType( RuleBase ):
 		self.token = token.lower();
 
 	# For some reason pyparsing wants __getitem__ and passes 0 as key?  Just return None
+	# noinspection PyUnusedLocal
 	def __getitem__( self, key ):
 		return None;
 

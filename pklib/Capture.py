@@ -10,7 +10,7 @@ import sys;
 from cStringIO import StringIO;
 
 class Stdout( object ):
-	'''Captures stdout into a string buffer within a context'''
+	"""Captures stdout into a string buffer within a context"""
 
 	def __enter__( self ):
 		self.OldStdout = sys.stdout;
@@ -18,8 +18,9 @@ class Stdout( object ):
 
 		return self;
 
-	def __exit__( self, type, value, traceback ):
- 		sys.stdout = self.OldStdout;
+	#noinspection PyUnusedLocal
+	def __exit__( self, eType, eValue, eTrace):
+		sys.stdout = self.OldStdout;
 
 	def __str__( self ):
 		return self.CapturedStdout.getvalue();

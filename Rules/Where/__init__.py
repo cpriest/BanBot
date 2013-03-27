@@ -14,6 +14,7 @@ from .. import RuleBase;
 
 class WhereBase( RuleBase ):
 	Automatic = '';
+	Modifiers = { };
 
 	def __init__( self, tokens ):
 		self.item = None;
@@ -42,15 +43,15 @@ class WhereBase( RuleBase ):
 		return self.Modifier + ( ' ' if self.Modifier != self.Automatic else '' );
 
 
- 	def __repr__( self ):
- 		return "%s( %s )" % ( self.ClassName, repr( self.item ) );
+	def __repr__( self ):
+		return "%s( %s )" % ( self.ClassName, repr( self.item ) );
 
- 	def __str__( self ):
- 		return '%s %s' % ( self.Command, str( self.item ) );
+	def __str__( self ):
+		return '%s %s' % ( self.Command, str( self.item ) );
 
 
-	"""	Calls the appropriate Matches* function of the sub-class or iterates over them if automatic mode is enabled.
-			Sub-Classes must implement a Matches* for each Modifier presented, such as MatchesEnvelope for WhereFrom. """
+#	Calls the appropriate Matches* function of the sub-class or iterates over them if automatic mode is enabled.
+#		Sub-Classes must implement a Matches* for each Modifier presented, such as MatchesEnvelope for WhereFrom.
 	def Matches( self, Message ):
 		if( self.Modifier == self.Automatic ):
 			for Modifier in self.Modifiers.keys():

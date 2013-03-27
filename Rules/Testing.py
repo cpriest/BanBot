@@ -8,14 +8,13 @@
 
 # System Imports
 from __future__ import print_function;
-import re, sys;
-from pprint import pprint;
+import re;
 
 # pklib Imports
 import pklib;
 from pklib import *;
 from pklib import Capture;
-from pklib.icdiff import ConsoleDiff;
+from pklib.lib.icdiff import ConsoleDiff;
 
 # Package Imports
 from RuleSet import *;
@@ -32,27 +31,27 @@ class MissingSection( TestException ):
 		return 'Missing section %s from test file %s' % ( self.args[0], self.rft.Filepath );
 
 class RuleFileTest( pklib.Object ):
-	'''
+	"""
 		Reads a test file and processes the rules, testing the results against the expected output.
 
 		Test files have sections which specify various aspects of the test and result
-		
+
 			--RULE--		Designates the following lines as the rules for testing
 			--EXPECT--		Designates the following lines as the expected output results
 			--COMMENTS--	Designates the following lines as part of the comments
-			
-		Any text before the start of another section are considered comments for the test
-	'''
 
-	Passed		 = 'PASS';
-	Failed 		 = 'FAIL';
-	Exception	 = 'EXCEPTION';
+		Any text before the start of another section are considered comments for the test
+	"""
+
+	RESULT_Passed		 = 'PASS';
+	RESULT_Failed 		 = 'FAIL';
+	RESULT_Exception	 = 'EXCEPTION';
 
 	ResultTypes = {
-			'Passed'	: Passed,
-			'Failed'	: Failed,
-			'Exception'	: Exception,
-		};
+		'Passed'	: RESULT_Passed,
+		'Failed'	: RESULT_Failed,
+		'Exception'	: RESULT_Exception,
+	};
 
 	def __init__( self, Filepath ):
 		self.Exception = None;
@@ -62,9 +61,9 @@ class RuleFileTest( pklib.Object ):
 
 		with open( Filepath, 'r' ) as fh:
 			for no, line in enumerate( fh.readlines() ):
- 				line = line.rstrip();
+				line = line.rstrip();
 				mr = re.match( r'^--(\w+)--$', line );
-				if( mr != None ):
+				if( mr is not None ):
 					CurrentSection = mr.group( 1 );
 					if CurrentSection not in self.Sections.keys():
 						self.Sections[CurrentSection] = [ ];
@@ -85,12 +84,11 @@ class RuleFileTest( pklib.Object ):
 			with Capture.Stdout() as Output:
 				try:
 					self.RuleSet = RuleSet( Mode=RuleSet.TEST ).ParseString( '\n'.join( self.Sections['RULE'] ) );
+					# Strip any trailing white-space/lines from Output and convert to string
+					self.Results = str( Output ).rstrip();
 
 				except RuleException as e:
-			 		print( 'RuleException from RuleFileTest' );
-
-			# Strip any trailing white-space/lines from Output and convert to string
-			self.Results = str( Output ).rstrip();
+					print( 'RuleException from RuleFileTest: %s' % str(e) );
 
 		except Exception, e:
 			self.Exception = e;
@@ -102,23 +100,23 @@ class RuleFileTest( pklib.Object ):
 
 	@property
 	def ResultCategory( self ):
-		if( self.Exception != None ):
-			return RuleFileTest.Exception;
+		if( self.Exception is not None ):
+			return RuleFileTest.RESULT_Exception;
 
 		if( self.TestPassed ):
-			return RuleFileTest.Passed;
-		return RuleFileTest.Failed;
+			return RuleFileTest.RESULT_Passed;
+		return RuleFileTest.RESULT_Failed;
 
 	@property
 	def FullColorDiff( self ):
 		diff = ConsoleDiff( tabsize=4, wrapcolumn=None, cols=Terminal.Width, highlight=True )	\
 					.make_table( 
-	 					fromlines=self.Sections['EXPECT'],
-	 					tolines=self.Results.splitlines( 1 )
-	 				);
-	 	left = '-- Expected --';
-	 	right = '|-- Result --';
-	 	return left + ( '-' * ( ( Terminal.Width / 2 ) - len( left ) - 1 ) ) + right + ( '-' * ( ( Terminal.Width / 2 ) - len( right ) + 1 ) ) + '\n' + diff;
+						fromlines=self.Sections['EXPECT'],
+						tolines=self.Results.splitlines( 1 )
+					);
+		left = '-- Expected --';
+		right = '|-- Result --';
+		return left + ( '-' * ( ( Terminal.Width / 2 ) - len( left ) - 1 ) ) + right + ( '-' * ( ( Terminal.Width / 2 ) - len( right ) + 1 ) ) + '\n' + diff;
 
 	def __getattr__( self, name ):
 		if( name in self.Sections ):
