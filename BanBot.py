@@ -39,10 +39,9 @@ sys.argv[0] = os.path.abspath( sys.argv[0] );
 ChannelLogger.AllChannels = ['proc', 'libmilter', 'watcher', 'signals', 'all'];
 
 class CommandLineArguments( ArgumentParser ):
-	# @IDEA-BUG - pwd, grp only available on linux?
-	# @IDEA-BUG - os.getuid() not defined in stub
-	# @IDEA-BUG - os.getgid() not defined in stub
-	# noinspection PyUnresolvedReferences
+
+	PICKLE_UNMATCHED = 0;
+
 	def __init__( self ):
 		ArgumentParser.__init__( self, description='BanBot Milter' );
 
@@ -91,13 +90,14 @@ class CommandLineArguments( ArgumentParser ):
 		self.logfile and self.CreateOwnFile( self.logfile );
 		self.pidfile and self.CreateOwnFile( self.pidfile );
 
+		# Non-configurable At the Moment
+		self.pickle_path = '/var/cache/banbot/%d/';
+		self.pickle_mode = self.PICKLE_UNMATCHED;
 
 	def CreateOwnFile( self, Filepath ):
 		if( Filepath ):
 			if( not os.path.exists( Filepath ) ):
 				with open( Filepath, 'w' ): pass;
-			# @IDEA-BUG - os.chown() not defined in stub
-			# noinspection PyUnresolvedReferences
 			os.chown( Filepath, self.uid, self.gid );
 
 
@@ -124,9 +124,10 @@ CommandLineArgs = CommandLineArguments();
 class MilterThread( Thread ):
 	"""	Wraps a sendmail milter instance in a thread to prevent the sendmail library from stealing all signals"""
 
-	def __init__( self, rule_set ):
+	def __init__( self, config, rule_set ):
 		Thread.__init__( self );
 		self.ActiveRuleSet = rule_set;
+		self.Config = config;
 		self.log = ChannelLogger( '%T [M] %c %m', CommandLineArgs.logchannels );
 		self.start();
 
@@ -138,7 +139,7 @@ class MilterThread( Thread ):
 		# Register to have the Milter factory create instances of your class:
 
 		def CreateBanBotMilterInstance():
-			return BanBotMilter( self.ActiveRuleSet );
+			return BanBotMilter( self.Config, self.ActiveRuleSet );
 
 		Milter.factory = CreateBanBotMilterInstance;
 		flags = Milter.CHGBODY + Milter.CHGHDRS + Milter.ADDHDRS;
@@ -186,8 +187,9 @@ class BanBotWatcher( BanBotScript ):
 
 
 	def Initialize( self ):
-		self.Daemonize( CommandLineArgs, stdout=CommandLineArgs.logfile, stderr=CommandLineArgs.logfile, files_preserve=None );
-		print( "---------------------------------------" );
+		if(CommandLineArgs.daemonize == True):
+			self.Daemonize( CommandLineArgs, stdout=CommandLineArgs.logfile, stderr=CommandLineArgs.logfile, files_preserve=None );
+			print( "---------------------------------------" );
 		BanBotScript.Initialize( self );
 
 
@@ -207,11 +209,12 @@ class BanBotWatcher( BanBotScript ):
 						self.log.watcher( "Child process pid=%d has exited (%d)." % ( self.ChildProc.pid, self.ChildProc.returncode ) );
 						self.ChildProc = None;
 
-			except:
+			except Exception as e:
 				ExceptionCount += 1;
 				self.log.watcher( "Terminating Child, Caught exception:" );
 				self.log.watcher( traceback.format_exc() );
 				self.TerminateChild();
+				print(e.child_traceback);
 
 				if( ExceptionCount > 5 ):
 					print( "Too many exceptions, exit(1);" );
@@ -279,7 +282,7 @@ class BanBotProcess( BanBotScript ):
 		BanBotScript.__init__( self );
 
 	def Execute( self ):
-		ExecutionThread = MilterThread( RuleSet().LoadFromFile( '/etc/banbot/global.rf' ) );
+		ExecutionThread = MilterThread( CommandLineArgs, RuleSet().LoadFromFile( '/etc/banbot/global.rf' ) );
 
 		while not self.ExitEvent.is_set():
 			time.sleep( 1 );

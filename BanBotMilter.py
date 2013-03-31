@@ -1,15 +1,11 @@
-import StringIO
-import time
-import re
-import traceback
-import shlex
-import os
+import time, re, traceback, shlex, os, jsonpickle;
+from datetime import datetime;
 from socket import AF_INET6, gethostbyaddr
 from subprocess import Popen, PIPE;
 
+# Third Party Packages
 import Milter
 from ipaddr import IPAddress
-
 
 # pklib Imports
 from pklib import *;
@@ -20,10 +16,11 @@ from Rules import *;
 class BanBotMilter( Milter.Base ):
 	MSG_USER_UNKNOWN = '550 Recipient address rejected. User unknown in virtual mailbox table';
 
-	def __init__( self, rule_set ):    # A new instance with each new connection.
+	def __init__( self, config, rule_set ):    # A new instance with each new connection.
 		self.id = Milter.uniqueID();    # Integer incremented with each call.
 		self.Message = AttrDict();    # Stores current known email information
 		self.ActiveRuleSet = rule_set;
+		self.Config = config;
 
 	# each connection runs in its own thread and has its own myMilter
 	# instance.	Python code must be thread safe.	This is trivial if only stuff
@@ -40,7 +37,8 @@ class BanBotMilter( Milter.Base ):
 		self.Message.SMTP.Client_Hostname = hostname;    # Name from a reverse IP lookup
 		self.Message.SMTP.Server_Hostname = self.getsymval( 'j' );
 		self.Message.SMTP.Recipients = [ ];
-		self.Message.Raw = StringIO.StringIO();
+		self.Message.Raw = '';
+#		self.Message.Raw = StringIO.StringIO();
 
 		# IPv6 Information
 		self.Message.SMTP.Client_IP_Flow = family == AF_INET6 and host_addr[2] or None;
@@ -69,7 +67,6 @@ class BanBotMilter( Milter.Base ):
 		self.Message.SMTP.AUTH_USER = self.getsymval( '{auth_authen}' );    # Authenticated User
 # 		self.canon_from = '@'.join( parse_addr( mailfrom ) )
 # 		self.Message.Raw.write( 'From %s %s\n' % ( self.canon_from, time.ctime() ) )
-		self.Message.Raw.write( 'From %s %s\n' % ( self.Message.SMTP.MAIL_FROM, time.ctime() ) )
 
 		self.log( "mail from:", self.Message.SMTP.MAIL_FROM, *ESMTP_params )
 
@@ -96,11 +93,13 @@ class BanBotMilter( Milter.Base ):
 
 
 	def header( self, name, value ):
-		if( name in self.Message.Headers ):
+		if( self.Message.Headers[name] != ''):
 			self.Message.Headers[name] = [self.Message.Headers[name]];
-			self.Message.Headers.append( value );
+			self.Message.Headers[name].append( value );
 		else:
 			self.Message.Headers[name] = value;
+
+		self.Message.Raw += "%s: %s\n" % (name, value);
 
 		if( re.search( r'Received', name, re.IGNORECASE ) ):
 			try:
@@ -116,18 +115,18 @@ class BanBotMilter( Milter.Base ):
 
 	@Milter.noreply
 	def eoh( self ):
-		self.Message.Raw.write( "\n" )    # terminate headers
+		self.Message.Raw += "\n";    # terminate headers
 		return self.ProcessRuleSet();
 
 
 	@Milter.noreply
 	def body( self, chunk ):
-		self.Message.Raw.write( chunk )
+		self.Message.Raw += chunk;
 		return Milter.CONTINUE
 
 
 	def eom( self ):
-		self.Message.Raw.seek( 0 );
+#		self.Message.Raw.seek( 0 );
 # 		msg = email.message_from_file( self.Message.Raw );
 # 		self.setreply('250', None, 'Grokked by pymilter')
 		# many milter functions can only be called from eom()
@@ -148,9 +147,13 @@ class BanBotMilter( Milter.Base ):
 			self.log( ' --> DISCARD to milter-test@zerocue.com\n' );
 			return Milter.DISCARD;
 
-		self.log( " --> ACCEPTED \n" );
-		return self.ProcessRuleSet();
+		r = self.ProcessRuleSet();
+		if(r == Milter.CONTINUE):
+			if(self.Config.pickle_mode == self.Config.PICKLE_UNMATCHED):
+				self.StoreMessage();
 
+		self.log(" --> ACCEPTED \n");
+		return r;
 
 	def close( self ):
 		"""	always called, even when abort is called.	Clean up any external resources here."""
@@ -254,4 +257,22 @@ class BanBotMilter( Milter.Base ):
 
 	def LogException( self, msg ):
 		self.log( msg + os.linesep + traceback.format_exc() );
+
+	@property
+	def PickleDir(self):
+		return self.Config.pickle_path.replace('%d', datetime.today().strftime('%Y-%m-%d')).rstrip(r'\/\\');
+
+	@property
+	def PicklePath(self):
+		return self.PickleDir + os.sep + re.sub(r'([<>\\\\/]+|\.{2,})', '', self.Message.Headers['Message-Id'] or self.Message.Headers['Message-ID']);
+
+	def StoreMessage(self):
+		os.path.isdir(self.PickleDir) or os.makedirs(self.PickleDir, 0755);
+
+		jsonpickle.set_encoder_options('simplejson', indent=4);
+		jsonpickle.set_encoder_options('json', indent=4);
+		with open(self.PicklePath, 'w') as fh:
+			fh.write(jsonpickle.encode(self.Message));
+		self.addheader( 'X-BanBot-Pickle-Path', self.PicklePath );
+		self.log('Pickled message to %s' % self.PicklePath);
 
