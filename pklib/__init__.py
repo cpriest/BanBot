@@ -46,25 +46,6 @@ class Object( object ):
 		return self.__class__.__name__;
 
 
-
-class AttrDict( dict, Object ):
-	"""		AttrDict() is a dictionary with additional features
-				- Allows access to the dictionary in . or [ ] form
-				- Otherwise un-initialized entries are automatically created as sub AttrDict() objects"""
-
-	def __init__( self, *args, **kwargs ):
-		super( AttrDict, self ).__init__( *args, **kwargs );
-		self.__dict__ = self;
-
-	def __getattr__( self, name ):
-		try:
-			return super( AttrDict, self ).__getattr__( name );
-		except AttributeError:
-			self[name] = AttrDict();
-			return self[name];
-
-
-
 def pp( *args, **kwargs ):
 	"""Alias for pprint.pprint() with preferred defaults"""
 
@@ -78,5 +59,33 @@ def pf( *args, **kwargs ):
 	if( 'width' not in kwargs ):
 		kwargs['width'] = 5;
 	return pprint.pformat( *args, **kwargs );
+
+class AttrDict( dict ):
+	"""		AttrDict() is a dictionary with additional features
+				- Allows access to the dictionary in . or [ ] form
+				- Otherwise un-initialized attributes are automatically created as sub AttrDict() objects"""
+
+	def __init__( self, *args, **kwargs ):
+		super( AttrDict, self ).__init__( *args, **kwargs );
+		self.__dict__ = self;
+
+	def __getattr__( self, name ):
+		try:
+			return super( AttrDict, self ).__getattr__( name );
+		except AttributeError:
+			self[name] = AttrDict();
+			return self[name];
+
+	def __getitem__(self, item):
+		try:
+			return dict.__getitem__(self, item);
+		except:
+			return '';
+
+	def __getstate__(self):
+		return dict.__getstate__(self);
+
+	def __setstate__(self, value):
+		dict.__setstate__(self, value);
 
 __all__ = [ 'Terminal', 'AttrDict', 'pf', 'pp' ];

@@ -16,8 +16,6 @@ import daemon;    # http://pypi.python.org/packages/source/p/python-daemon/pytho
 
 class Script:
 	def __init__( self ):
-		# @IDEA-BUG - os.getppid() stub missing
-		# noinspection PyUnresolvedReferences
 		self.ppid = os.getppid();
 		self.ExitEvent = threading.Event();
 
@@ -37,23 +35,26 @@ class Script:
 	def OnExit( self ):
 		pass;
 
+	def OnSignal_QUIT( self, signum, frame ):
+		pass;
+	def OnSignal_TERM( self, signum, frame ):
+		pass;
+	def OnSignal_HUP( self, signum, frame ):
+		pass;
+	def OnSignal_INT( self, signum, frame ):
+		pass;
+
 	def __InstallSignals( self ):
-		if( 'OnSignal_QUIT' in dir( self ) ):
-			# @IDEA-BUG - signal.SIGQUIT
-			# noinspection PyUnresolvedReferences
+		if( self.OnSignal_QUIT.__func__.__module__ != 'pklib.Script' ):
 			signal.signal( signal.SIGQUIT, self.OnSignal_QUIT );
 
-		if( 'OnSignal_TERM' in dir( self ) ):
-			# noinspection PyUnresolvedReferences
+		if( self.OnSignal_TERM.__func__.__module__ != 'pklib.Script' ):
 			signal.signal( signal.SIGTERM, self.OnSignal_TERM );
 
-		if( 'OnSignal_HUP' in dir( self ) ):
-			# @IDEA-BUG - signal.SIGHUP
-			# noinspection PyUnresolvedReferences
+		if( self.OnSignal_HUP.__func__.__module__ != 'pklib.Script' ):
 			signal.signal( signal.SIGHUP, self.OnSignal_HUP );
 
-		if( 'OnSignal_INT' in dir( self ) ):
-			# noinspection PyUnresolvedReferences
+		if( self.OnSignal_INT.__func__.__module__ != 'pklib.Script' ):
 			signal.signal( signal.SIGINT, self.OnSignal_INT );
 
 
