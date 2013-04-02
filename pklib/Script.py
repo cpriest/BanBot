@@ -62,9 +62,9 @@ class Script:
 		args = {
 			'uid': 				DaemonArgs.uid,
 			'gid': 				DaemonArgs.gid,
-			'stdin':  			open( stdin, 'r+', 1 ) if stdin is not None else None,
-			'stdout': 			open( stdout, 'a+', 1 ) if stdout is not None else None,
-			'stderr': 			open( stderr, 'a+', 1 ) if stderr is not None else None,
+			'stdin':  			stdin,
+			'stdout': 			stdout,
+			'stderr': 			stderr,
 # 			'pidfile': 			PIDLockFile(DaemonArgs.pidfile) if DaemonArgs.pidfile != None else None,
 			'files_preserve':	files_preserve,
 			'signal_map'	:	{ },
