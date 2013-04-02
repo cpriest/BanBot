@@ -13,7 +13,6 @@
 #
 #
 
-
 from __future__ import print_function;
 
 # Standard Libraries
@@ -23,6 +22,7 @@ from threading import Thread;
 
 # Libraries
 import milter, Milter;
+from colors import *;
 
 # BanBot Imports
 from BanBotMilter import *;
@@ -38,24 +38,79 @@ sys.argv[0] = os.path.abspath( sys.argv[0] );
 
 ChannelLogger.AllChannels = ['proc', 'libmilter', 'watcher', 'signals', 'all'];
 
-class CommandLineArguments( ArgumentParser ):
+class myArgParse(ArgumentParser):
+	def error(self, message):
+		if('-h' in sys.argv or '--help' in sys.argv):
+			self.print_help();
+			exit(0);
+		if('too few arguments' in message):
+			self.print_help();
+			print(red('\n{}: error: {}'.format(self.prog, message), style='bold'));
+			exit(2);
+		ArgumentParser.error(self, message);
+
+
+class CommandLineArguments( ):
 
 	PICKLE_UNMATCHED = 0;
 
 	def __init__( self ):
-		ArgumentParser.__init__( self, description='BanBot Milter' );
+		ProgName = 'BanBot';
 
-		self.add_argument( '-d', '--daemonize', 	help='Runs the script as a daemon', action='store_true' );
-		self.add_argument( '-p', '--pidfile', 		help='Pidfile for the process if running as a daemon', metavar='FILE' );
-		self.add_argument( '-u', '--user', 			help='Change the running user, only available if run as root', dest='user' );
-		self.add_argument( '-g', '--group', 		help='Change the running group, only available if run as root', dest='group' );
-		self.add_argument( '-C', '--chroot', 		help='Change the root directory to the given path\n\n', dest='chroot', metavar='DIR' )
+		# Global Options
+		p_global = myArgParse(add_help=False, conflict_handler='resolve');
 
-		self.add_argument( '-l', '--logfile', 		help='Write output to the given log file', dest='logfile', metavar='FILE', default='/var/log/BanBot.log' );
-		self.add_argument( '-dc', '--debug-channels', help='Display logging for the given channel names', metavar='CHAN', dest='logchannels', choices=ChannelLogger.AllChannels, nargs='+' )
-		self.add_argument( '--mode', 	 			help=argparse.SUPPRESS, 	default='watch', 	dest='mode', 	choices=['watch', 'process'], 	action='store' );
+		pg_opt = p_global.add_argument_group('Global Options');
+		pg_opt.add_argument('-h', '--help', 			help='Shows this help message', action='store_true');
+		pg_opt.add_argument('-l', '--logfile', 			help='Write output to the given log file', dest='logfile', metavar='FILE');
+		pg_opt.add_argument('-dc', '--debug-channels', 	help='Display logging for the given channel names', metavar='CHAN', dest='logchannels', choices=ChannelLogger.AllChannels, nargs='+' )
 
-		self.args = vars( self.parse_args() );
+		# start ... options
+		p_start = myArgParse(description='Startup Options #22121', add_help=False, conflict_handler='resolve');
+		ps_opt = p_start.add_argument_group('Options');
+		ps_opt.add_argument('-u', '--user', 		help='Change the running user, only available if run as root', dest='user' );
+		ps_opt.add_argument('-g', '--group', 		help='Change the running group, only available if run as root', dest='group' );
+		ps_opt.add_argument('-C', '--chroot', 		help='Change the root directory to the given path\n\n', dest='chroot', metavar='DIR' )
+		ps_opt.add_argument('-d', '--daemonize', 	help='Runs the script as a daemon', action='store_true');
+		ps_opt.add_argument('-p', '--pidfile', 		help='Pidfile for the process if running as a daemon', metavar='FILE');
+
+		# Main Parser
+		parser = myArgParse(add_help=False, conflict_handler='resolve', parents=[p_global]);
+		sp_cmds = parser.add_subparsers(dest='cmd');
+
+		cmd_start = sp_cmds.add_parser('start', 				help='Starts the {} daemon'.format(ProgName), parents=[p_global,p_start]);
+
+		sp_cmd_start = cmd_start.add_subparsers(dest='cmd_sub');
+		cmd_start_watcher = sp_cmd_start.add_parser('watcher', 	help='Starts the watcher process which ensures continuity of the worker process', parents=[p_global,p_start] );
+		cmd_start_worker = sp_cmd_start.add_parser('worker', 	help='Starts the worker process which handles mail flow', parents=[p_global,p_start]);
+
+		cmd_stop 	= sp_cmds.add_parser('stop', 	help='Stops the {} daemon'.format(ProgName), parents=[p_global]);
+		cmd_reload 	= sp_cmds.add_parser('reload', 	help='Reloads the running configuration', parents=[p_global]);
+		cmd_lint 	= sp_cmds.add_parser('lint', 	help='Tests the syntax of active configuration and rule files', parents=[p_global]);
+		cmd_test 	= sp_cmds.add_parser('test', 	help='Tests rules against pickled messages', parents=[p_global]);
+
+		if(len(sys.argv) == 1):
+			parser.print_help();
+			exit(0);
+
+		# Workaround for non-optional sub-parsers.  This turns 'start' into 'start watcher' if no -h or --help present
+		if(('-h' not in sys.argv and '--help' not in sys.argv) and 'start' in sys.argv):
+			index = sys.argv.index('start');
+			if(index+1 >= len(sys.argv) or sys.argv[index+1] not in ('watcher','worker')):
+				sys.argv.insert(sys.argv.index('start')+1, 'watcher');
+
+		self.args = vars( parser.parse_args() );
+		if(self.args['help'] == True):
+			if(self.args['cmd'] == 'start'):
+				if(self.args['cmd_sub'] == 'worker'):
+					cmd_start_worker.print_help();
+				if(self.args['cmd_sub'] == 'watcher'):
+					cmd_start_watcher.print_help();
+			else:
+				parser.print_help();
+			exit(0);
+
+		self.full_cmd = ' '.join([self.cmd, self.cmd_sub or '']).strip();
 
 		if( self.user is not None ):
 			import pwd;
@@ -87,7 +142,8 @@ class CommandLineArguments( ArgumentParser ):
 		if( self.chroot is not None and not os.path.exists( self.chroot ) ):
 			self.ExitError( 'Cannot chroot (-C %s), directory does not exist.' % self.chroot );
 
-		self.logfile and self.CreateOwnFile( self.logfile );
+		self.logfileh = open(self.logfile, 'a+', 1) if self.CreateOwnFile(self.logfile) else sys.stdout;
+
 		self.pidfile and self.CreateOwnFile( self.pidfile );
 
 		# Non-configurable At the Moment
@@ -96,9 +152,14 @@ class CommandLineArguments( ArgumentParser ):
 
 	def CreateOwnFile( self, Filepath ):
 		if( Filepath ):
-			if( not os.path.exists( Filepath ) ):
-				with open( Filepath, 'w' ): pass;
-			os.chown( Filepath, self.uid, self.gid );
+			try:
+				if( not os.path.exists( Filepath ) ):
+					with open( Filepath, 'w' ): pass;
+				os.chown( Filepath, self.uid, self.gid );
+				return True;
+			except Exception as e:
+				self.ExitError('Unable to open file for writing: {}'.format(str(e)), [ IOError ]);
+		return False;
 
 
 	def __getattr__( self, name ):
@@ -176,6 +237,25 @@ class BanBotScript( Script ):
 	def OnExit( self ):
 		self.log.proc( "Shutdown" );
 
+	@staticmethod
+	def Stop():
+		print(red('stop not yet implemented', style='bold'));
+		pass;
+
+	@staticmethod
+	def Reload():
+		print(red('reload not yet implemented', style='bold'));
+		pass;
+
+	@staticmethod
+	def LintConfiguration():
+		print(red('lint not yet implemented', style='bold'));
+		pass;
+
+	@staticmethod
+	def TestPickledMessages():
+		print(red('test not yet implemented', style='bold'));
+		pass;
 
 
 
@@ -188,7 +268,7 @@ class BanBotWatcher( BanBotScript ):
 
 	def Initialize( self ):
 		if(CommandLineArgs.daemonize == True):
-			self.Daemonize( CommandLineArgs, stdout=CommandLineArgs.logfile, stderr=CommandLineArgs.logfile, files_preserve=None );
+			self.Daemonize( CommandLineArgs, stdout=CommandLineArgs.logfileh, stderr=CommandLineArgs.logfileh, files_preserve=None );
 			print( "---------------------------------------" );
 		BanBotScript.Initialize( self );
 
@@ -214,7 +294,10 @@ class BanBotWatcher( BanBotScript ):
 				self.log.watcher( "Terminating Child, Caught exception:" );
 				self.log.watcher( traceback.format_exc() );
 				self.TerminateChild();
-				print(e.child_traceback);
+
+				if('child_traceback' in e):
+					# noinspection PyUnresolvedReferences
+					self.log.watcher(e.child_traceback);
 
 				if( ExceptionCount > 5 ):
 					print( "Too many exceptions, exit(1);" );
@@ -225,15 +308,15 @@ class BanBotWatcher( BanBotScript ):
 
 
 	def StartChild( self ):
-		args = [ sys.argv[0], '--mode', 'process' ];
+		args = [ sys.argv[0], 'start','worker'];
 		if( CommandLineArgs.logfile ):
 			args += [ '--logfile', CommandLineArgs.logfile ];
 		if( CommandLineArgs.logchannels ):
 			args += [ '-dc' ] + CommandLineArgs.logchannels;
 
 		self.ChildProc = subprocess.Popen( args,
-								stdout=open( CommandLineArgs.logfile, 'a+' ),
-								stderr=open( CommandLineArgs.logfile, 'a+' ), close_fds=True );
+								stdout=CommandLineArgs.logfileh,
+								stderr=CommandLineArgs.logfileh, close_fds=True );
 		self.log.watcher( "Started Process, pid=%d" % self.ChildProc.pid );
 
 
@@ -276,7 +359,7 @@ class BanBotWatcher( BanBotScript ):
 
 
 # Script which starts a MilterThread and responds to unix signals
-class BanBotProcess( BanBotScript ):
+class BanBotWorker( BanBotScript ):
 
 	def __init__( self ):
 		BanBotScript.__init__( self );
@@ -306,10 +389,18 @@ class BanBotProcess( BanBotScript ):
 		self.log.signals( "(SIGTERM Caught, Exiting)" );
 		self.ExitEvent.set();
 
-
 if( __name__ == "__main__" ):
-	if( CommandLineArgs.mode == 'watch' ):
-		BanBotWatcher();
-	else:
-		BanBotProcess();
+	CommandMap = {
+		'start watcher' : BanBotWatcher,
+		'start worker'	: BanBotWorker,
+		'stop'			: BanBotScript.Stop,
+		'reload'		: BanBotScript.Reload,
+		'lint'			: BanBotScript.LintConfiguration,
+		'test'			: BanBotScript.TestPickledMessages
+	};
+	if(CommandLineArgs.full_cmd in CommandMap):
+		CommandMap[CommandLineArgs.full_cmd]();
+		exit(0);
 
+	# This really shouldn't ever happen, but just in case.
+	print(red('Unknown command: {}'.format(CommandLineArgs.full_cmd)));
