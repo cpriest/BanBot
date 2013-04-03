@@ -72,7 +72,8 @@ class CommandLineArguments( ):
 		ps_opt.add_argument('-g', '--group', 		help='Change the running group, only available if run as root', dest='group' );
 		ps_opt.add_argument('-C', '--chroot', 		help='Change the root directory to the given path\n\n', dest='chroot', metavar='DIR' )
 		ps_opt.add_argument('-d', '--daemonize', 	help='Runs the script as a daemon', action='store_true');
-		ps_opt.add_argument('-p', '--pidfile', 		help='Pidfile for the process if running as a daemon', metavar='FILE');
+		ps_opt.add_argument('-p', '--pidfile', 		help='Pidfile for the process if running as a daemon', metavar='FILE', default='/var/run/BanBot.pid');
+		ps_opt.add_argument('-s', '--socket', 		help='Unix socket filepath, default: /tmp/BanBot.sock', metavar='FILE', default='/tmp/BanBot.sock');
 
 		# Main Parser
 		parser = myArgParse(add_help=False, conflict_handler='resolve', parents=[p_global]);
@@ -196,7 +197,6 @@ class MilterThread( Thread ):
 
 	def run( self ):
 		self.log( "BanBot Started pid=%d" % ( os.getpid() ) );
-		socketname = "/tmp/BanBot.sock";
 		timeout = 600;
 		# Register to have the Milter factory create instances of your class:
 
@@ -211,6 +211,8 @@ class MilterThread( Thread ):
 
 		Milter.runmilter( "pythonfilter", self.Config.socket, timeout );
 
+		if(os.path.exists(self.Config.socket)):
+			os.unlink(self.Config.socket);
 		self.log( "BanBot Stopped pid=%d" % ( os.getpid() ) );
 
 
@@ -273,6 +275,9 @@ class BanBotWatcher( BanBotScript ):
 
 
 	def Initialize( self ):
+		if(os.path.exists(CommandLineArgs.socket)):
+			os.unlink(CommandLineArgs.socket);
+
 		if(CommandLineArgs.daemonize == True):
 			self.Daemonize( CommandLineArgs, stdout=CommandLineArgs.logfileh, stderr=CommandLineArgs.logfileh, files_preserve=None );
 			print( "---------------------------------------" );
