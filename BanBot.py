@@ -63,7 +63,7 @@ class CommandLineArguments( ):
 		pg_opt = p_global.add_argument_group('Global Options');
 		pg_opt.add_argument('-h', '--help', 			help='Shows this help message', action='store_true');
 		pg_opt.add_argument('-l', '--logfile', 			help='Write output to the given log file', dest='logfile', metavar='FILE');
-		pg_opt.add_argument('-dc', '--debug-channels', 	help='Display logging for the given channel names', metavar='CHAN', dest='logchannels', choices=ChannelLogger.AllChannels, nargs='+' )
+		pg_opt.add_argument('-dc', '--debug-channels', 	help='Display logging for the given channel names, channels: {}'.format(', '.join(ChannelLogger.AllChannels)), metavar='CHAN', dest='logchannels', choices=ChannelLogger.AllChannels, nargs='+' )
 
 		# start ... options
 		p_start = myArgParse(description='Startup Options #22121', add_help=False, conflict_handler='resolve');
@@ -85,6 +85,7 @@ class CommandLineArguments( ):
 		cmd_start_worker = sp_cmd_start.add_parser('worker', 	help='Starts the worker process which handles mail flow', parents=[p_global,p_start]);
 
 		cmd_stop 	= sp_cmds.add_parser('stop', 	help='Stops the {} daemon'.format(ProgName), parents=[p_global]);
+		cmd_restart = sp_cmds.add_parser('restart', help='Restarts the whole shebang', parents=[p_global]);
 		cmd_reload 	= sp_cmds.add_parser('reload', 	help='Reloads the running configuration', parents=[p_global]);
 		cmd_lint 	= sp_cmds.add_parser('lint', 	help='Tests the syntax of active configuration and rule files', parents=[p_global]);
 		cmd_test 	= sp_cmds.add_parser('test', 	help='Tests rules against pickled messages', parents=[p_global]);
@@ -208,7 +209,7 @@ class MilterThread( Thread ):
 		flags += Milter.DELRCPT;
 		Milter.set_flags( flags );    # tell Sendmail which features we use
 
-		Milter.runmilter( "pythonfilter", socketname, timeout );
+		Milter.runmilter( "pythonfilter", self.Config.socket, timeout );
 
 		self.log( "BanBot Stopped pid=%d" % ( os.getpid() ) );
 
@@ -240,6 +241,11 @@ class BanBotScript( Script ):
 	@staticmethod
 	def Stop():
 		print(red('stop not yet implemented', style='bold'));
+		pass;
+
+	@staticmethod
+	def Restart():
+		print(red('restart not yet implemented', style='bold'));
 		pass;
 
 	@staticmethod
@@ -394,6 +400,7 @@ if( __name__ == "__main__" ):
 		'start watcher' : BanBotWatcher,
 		'start worker'	: BanBotWorker,
 		'stop'			: BanBotScript.Stop,
+		'restart'		: BanBotScript.Restart,
 		'reload'		: BanBotScript.Reload,
 		'lint'			: BanBotScript.LintConfiguration,
 		'test'			: BanBotScript.TestPickledMessages
