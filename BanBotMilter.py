@@ -9,6 +9,7 @@ from ipaddr import IPAddress
 
 # pklib Imports
 from pklib import *;
+from pklib.ChannelLogger import *;
 
 # Package Imports
 from Rules import *;
@@ -21,6 +22,7 @@ class BanBotMilter( Milter.Base ):
 		self.Message = AttrDict();    # Stores current known email information
 		self.ActiveRuleSet = rule_set;
 		self.Config = config;
+		self.log = ChannelLogger( '%T %c |{}| %m'.format(self.id), self.Config.logchannels);
 
 	# each connection runs in its own thread and has its own myMilter
 	# instance.	Python code must be thread safe.	This is trivial if only stuff
@@ -47,7 +49,7 @@ class BanBotMilter( Milter.Base ):
 
 		self.tblWhoisTraces = [ ];
 
-		self.log( "connect from %s at %s" % ( hostname, host_addr ) )
+		self.log.smtp( "connect from %s at %s" % ( hostname, host_addr ) )
 
 		return self.ProcessRuleSet();
 
@@ -55,7 +57,7 @@ class BanBotMilter( Milter.Base ):
 	def hello( self, heloname ):
 		""" (self, 'mailout17.dallas.texas.example.com') """
 		self.Message.SMTP.HELO_NAME = heloname;
-		self.log( "HELO %s" % heloname )
+		self.log.smtp( "HELO %s" % heloname )
 
 		return self.ProcessRuleSet();
 
@@ -68,7 +70,7 @@ class BanBotMilter( Milter.Base ):
 # 		self.canon_from = '@'.join( parse_addr( mailfrom ) )
 # 		self.Message.Raw.write( 'From %s %s\n' % ( self.canon_from, time.ctime() ) )
 
-		self.log( "mail from:", self.Message.SMTP.MAIL_FROM, *ESMTP_params )
+		self.log.smtp( "mail from:", self.Message.SMTP.MAIL_FROM, *ESMTP_params )
 
 		return self.ProcessRuleSet();
 
@@ -84,7 +86,7 @@ class BanBotMilter( Milter.Base ):
 		except:
 			Friendly, Email = [None, to];
 
-		self.log( "rcpt to: %s, Friendly=%s, Email=%s" % ( to, Friendly, Email ) );
+		self.log.smtp( "rcpt to: %s, Friendly=%s, Email=%s" % ( to, Friendly, Email ) );
 
 		if( self.IsRevokedAddress( Email ) ):
 			return self.RejectMessage( '554 You shared %s without my permission, permission is now revoked' % Email );
@@ -98,6 +100,8 @@ class BanBotMilter( Milter.Base ):
 			self.Message.Headers[name].append( value );
 		else:
 			self.Message.Headers[name] = value;
+
+		self.log.smtp('Header | {}: {}'.format(name, value));
 
 		self.Message.Raw += "%s: %s\n" % (name, value);
 
@@ -136,15 +140,17 @@ class BanBotMilter( Milter.Base ):
 # 			self.log(" --> DISCARD (from localhost) ");
 # 			return Milter.DISCARD;
 
+		self.log.smtp('EndOfMessage, size={}kb'.format(len(self.Message.Raw)/1024));
+
 		# Process pwhois output results
 		for ip, proc in self.tblWhoisTraces:
 			proc.wait();
 			hResult = self.ProcessPwhoisOutput( ip, proc.stdout );
-			self.log( '  pwhois[%s] = %s' % ( ip, hResult ) );
+			self.log.rules( '  pwhois[%s] = %s' % ( ip, hResult ) );
 			self.addheader( 'BanBot-WHOIS', 'IP: %s (%s) (%s) Abuse: %s, Country: %s' % ( ip, hResult['hostname'], hResult['cidr'], hResult['abuse-email'], hResult['country'] ) );
 
 		if( '<milter-test@zerocue.com>' in self.Message.SMTP.Recipients ):
-			self.log( ' --> DISCARD to milter-test@zerocue.com\n' );
+			self.log.rules( ' --> DISCARD to milter-test@zerocue.com\n' );
 			return Milter.DISCARD;
 
 		r = self.ProcessRuleSet();
@@ -152,7 +158,7 @@ class BanBotMilter( Milter.Base ):
 			if(self.Config.pickle_mode == self.Config.PICKLE_UNMATCHED):
 				self.StoreMessage();
 
-		self.log(" --> ACCEPTED \n");
+		self.log.rules(" --> ACCEPTED \n");
 		return r;
 
 	def close( self ):
@@ -185,16 +191,15 @@ class BanBotMilter( Milter.Base ):
 		milter_result = tMap[result];
 
 		if( milter_result != Milter.CONTINUE ):
-			self.log( '%sed by rule: %s' % ( result, str( rule ) ) );
+			self.log.rules( '%sed by rule: %s' % ( result, str( rule ) ) );
 
 		return milter_result;
 
 
-
-	def log( self, *msg ):
-		print( "%s [%d] %s" % ( time.strftime( '%Y %b %d %H:%M:%S' ), self.id, ', '.join( msg ) ) );
-
-
+	# noinspection PyMethodOverriding
+	def addheader(self, name, value):
+		self.log.smtp('Adding Header: {} = {}'.format(name, value));
+		return Milter.Base.addheader(self, name, value);
 
 	# #
 	# # Custom Functions
@@ -219,7 +224,7 @@ class BanBotMilter( Milter.Base ):
 
 
 	def RejectMessage( self, Message ):
-		self.log( " --> REJECT (%s)" % Message );
+		self.log.rules( " --> REJECT (%s)" % Message );
 		try:
 			Code, Message = re.match( r'^(\d+)\s+(.+)$', Message ).groups();
 		except:
@@ -231,7 +236,7 @@ class BanBotMilter( Milter.Base ):
 		cmd = "pwhois -c /var/cache/pwhois -cd 30 %s" % ( ip );
 
 		self.tblWhoisTraces.append( [ip, Popen( shlex.split( cmd ), stdout=PIPE, stderr=PIPE )] );
-# 		self.log("ip found: %s, launched: %s" % (ip, cmd));
+# 		self.log.rules("ip found: %s, launched: %s" % (ip, cmd));
 		return False;
 
 	def ProcessPwhoisOutput( self, ip, lines ):
@@ -241,7 +246,7 @@ class BanBotMilter( Milter.Base ):
 				name, value = re.search( r'^([^:]+):(.*)$', line ).groups();
 				hResult[name] = value;
 			except:
-				self.log( "Could not process whois line:\n  " + line.trim() );
+				self.log.rules( "Could not process whois line:\n  " + line.trim() );
 
 		try:
 			hResult['hostname'] = gethostbyaddr( str( ip ) )[0];
@@ -274,5 +279,5 @@ class BanBotMilter( Milter.Base ):
 		with open(self.PicklePath, 'w') as fh:
 			fh.write(jsonpickle.encode(self.Message));
 		self.addheader( 'X-BanBot-Pickle-Path', self.PicklePath );
-		self.log('Pickled message to %s' % self.PicklePath);
+		self.log.pickler('Pickled message to %s' % self.PicklePath);
 

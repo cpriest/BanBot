@@ -36,7 +36,7 @@ from pklib.ChannelLogger import *;
 # Convert relative executable path to absolute
 sys.argv[0] = os.path.abspath( sys.argv[0] );
 
-ChannelLogger.AllChannels = ['proc', 'libmilter', 'watcher', 'signals', 'all'];
+ChannelLogger.AllChannels = ['proc', 'smtp', 'pickler', 'rules', 'libmilter', 'watcher', 'signals', 'all'];
 
 class myArgParse(ArgumentParser):
 	def error(self, message):
@@ -191,7 +191,7 @@ class MilterThread( Thread ):
 		Thread.__init__( self );
 		self.ActiveRuleSet = rule_set;
 		self.Config = config;
-		self.log = ChannelLogger( '%T [M] %c %m', CommandLineArgs.logchannels );
+		self.log = ChannelLogger( '%T %c %m', CommandLineArgs.logchannels );
 		self.start();
 
 
@@ -229,7 +229,7 @@ class MilterThread( Thread ):
 class BanBotScript( Script ):
 
 	def __init__( self ):
-		self.log = ChannelLogger( '%T [' + self.__class__.__name__.replace( 'BanBot', '' )[0:1] + '] %c %m', CommandLineArgs.logchannels );
+		self.log = ChannelLogger( '%T %c %m', CommandLineArgs.logchannels );
 		Script.__init__( self );
 
 
