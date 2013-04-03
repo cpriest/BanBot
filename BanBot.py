@@ -281,6 +281,15 @@ class BanBotWatcher( BanBotScript ):
 		if(CommandLineArgs.daemonize == True):
 			self.Daemonize( CommandLineArgs, stdout=CommandLineArgs.logfileh, stderr=CommandLineArgs.logfileh, files_preserve=None );
 			print( "---------------------------------------" );
+		else:
+			os.setgid(CommandLineArgs.gid);
+			os.setuid(CommandLineArgs.uid);
+
+		if( CommandLineArgs.pidfile ):
+			pf = open( CommandLineArgs.pidfile, 'w+' );
+			pf.write( str( os.getpid() ) );
+			pf.close();
+
 		BanBotScript.Initialize( self );
 
 
