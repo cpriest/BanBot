@@ -9,7 +9,7 @@
 import time
 import os
 
-class ChannelLogger():
+class ChannelLogger(object):
 	"""
 		Channel Logger is designed to allow for channel based logging
 
@@ -29,6 +29,21 @@ class ChannelLogger():
 				logger.debug1("Will show message");
 				logger.debug2("Ignored message");
 	"""
+
+	AllChannels = [ ];
+
+	@property
+	def Channels(self):
+		return self._Channels;
+
+	@Channels.setter
+	def Channels(self, value):
+		self._Channels = value;
+
+		if('all' in value):
+			value = ChannelLogger.AllChannels;
+		self._ChannelWidth = max([len(x) for x in value]);
+
 	def __init__( self, Pattern='%T %m', Channels=() ):
 		self.Pattern = Pattern;
 		self.Channels = Channels;
@@ -37,10 +52,11 @@ class ChannelLogger():
 		self._logMessage( '', *args );
 		pass;
 
-	def __getattr__( self, Channel ):
-		if( self.Channels is not None and ( Channel in self.Channels or 'all' in self.Channels ) ):
+	def __getattr__( self, name ):
+#		print('__getattr_: {}'.format(name));
+		if( self.Channels is not None and ( name in self.Channels or 'all' in self.Channels ) ):
 			def logMessage( *args ):
-				self._logMessage( Channel, *args );
+				self._logMessage( name, *args );
 			return logMessage;
 		return self._ignoreMessage;
 
@@ -49,7 +65,7 @@ class ChannelLogger():
 
 	def _logMessage( self, Channel, *args ):
 		if( Channel != '' ):
-			Channel = '[' + Channel + '] ';
+			Channel = ('{:'+str(self._ChannelWidth+3)+'}').format('[' + Channel + '] ');
 
 		print( self.Pattern.
 				replace( '%T', time.strftime( '%Y %b %d %H:%M:%S' ) ).
