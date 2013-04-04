@@ -6,11 +6,6 @@
 # 		as is the pymilter library upon which it is built, the license can be found
 # 		here: http://www.gnu.org/licenses/fdl-1.3.txt
 #
-# 	TODO:
-# 		? Configuration File
-# 		- Rule Files
-#
-#
 #
 
 from __future__ import print_function;
@@ -39,7 +34,7 @@ from pklib.With import *;
 
 sys.argv[0] = os.path.abspath( sys.argv[0] );
 
-ChannelLogger.AllChannels = ['proc', 'smtp', 'pickler', 'rules', 'libmilter', 'watcher', 'signals', 'all'];
+ChannelLogger.AllChannels = ['worker', 'smtp', 'pickler', 'rules', 'libmilter', 'watcher', 'signals', 'all'];
 
 class App(object):
 	ProgName = 'BanBot';
@@ -97,7 +92,6 @@ class CommandLineArguments( ):
 		cmd_start_worker = sp_cmd_start.add_parser('worker', 	help='Starts the worker process which handles mail flow', parents=[p_global,p_start,p_process]);
 
 		cmd_stop 	= sp_cmds.add_parser('stop', 	help='Stops the {ProgName} daemon'.format(**FormatStdVars), parents=[p_global,p_process]);
-		cmd_restart = sp_cmds.add_parser('restart', help='Restarts the whole shebang', parents=[p_global,p_process]);
 		cmd_reload 	= sp_cmds.add_parser('reload', 	help='Reloads the running configuration', parents=[p_global,p_process]);
 		cmd_lint 	= sp_cmds.add_parser('lint', 	help='Tests the syntax of active configuration and rule files', parents=[p_global]);
 		cmd_test 	= sp_cmds.add_parser('test', 	help='Tests rules against pickled messages', parents=[p_global]);
@@ -151,7 +145,9 @@ class CommandLineArguments( ):
 
 		self.logfileh = open(self.logfile, 'a+', 1) if self.CreateOwnFile(self.logfile) else sys.stdout;
 
-		self.pidfile and self.CreateOwnFile( self.pidfile );
+		self.full_cmd == 'start watcher' and \
+			self.pidfile and \
+				self.CreateOwnFile( self.pidfile );
 
 		# Non-configurable At the Moment
 		self.pickle_path = '/var/cache/banbot/%d/';
@@ -192,7 +188,7 @@ class MilterThread( Thread ):
 
 
 	def run( self ):
-		self.log('{ProgName} Started pid={}'.format(os.getpid(), **FormatStdVars));
+		self.log.worker('Thread Started');
 		timeout = 600;
 		# Register to have the Milter factory create instances of your class:
 
@@ -209,7 +205,7 @@ class MilterThread( Thread ):
 
 		if(os.path.exists(self.Config.socket)):
 			os.unlink(self.Config.socket);
-		self.log('{ProgName} Stopped pid={}'.format(os.getpid(), **FormatStdVars));
+		self.log.worker('Thread Stopped');
 
 
 	def quit( self ):
@@ -228,14 +224,6 @@ class BanBotScript( Script ):
 		self.log = ChannelLogger( '%T %c %m', CommandLineArgs.logchannels );
 		Script.__init__( self );
 
-
-	def Initialize( self ):
-		self.log.proc( "Startup pid=%d" % ( os.getpid() ) );
-
-
-	def OnExit( self ):
-		self.log.proc( "Shutdown" );
-
 	@staticmethod
 	def GetBanBotPid():
 		not CommandLineArgs.pidfile \
@@ -251,6 +239,10 @@ class BanBotScript( Script ):
 			return int(pid);
 		except:
 			raise;
+
+	@staticmethod
+	def Start():
+		BanBotWatcher();
 
 	@staticmethod
 	def Stop():
@@ -272,14 +264,10 @@ class BanBotScript( Script ):
 			Script.ExitError('Could not kill {ProgName} (pid={}): {!s}'.format(pid, e, **FormatStdVars));
 
 	@staticmethod
-	def Restart():
-		print(red('restart not yet implemented', style='bold'));
-		pass;
-
-	@staticmethod
 	def Reload():
-		print(red('reload not yet implemented', style='bold'));
-		pass;
+		pid = BanBotScript.GetBanBotPid();
+		os.kill(pid, signal.SIGHUP);
+		print('Reloading configuration...');
 
 	@staticmethod
 	def LintConfiguration():
@@ -316,8 +304,9 @@ class BanBotWatcher( BanBotScript ):
 			pf.write( str( os.getpid() ) );
 			pf.close();
 
-		BanBotScript.Initialize( self );
+		self.log.watcher('Startup pid={}'.format(os.getpid()));
 
+		BanBotScript.Initialize( self );
 
 	def Execute( self ):
 		self.ChildProc = None;
@@ -332,12 +321,12 @@ class BanBotWatcher( BanBotScript ):
 				if( self.ChildProc is not None ):
 					self.ChildProc.poll();
 					if( self.ChildProc.returncode is not None ):
-						self.log.watcher( "Child process pid=%d has exited (%d)." % ( self.ChildProc.pid, self.ChildProc.returncode ) );
+						self.log.watcher( 'worker process pid={} has exited ({}).'.format(self.ChildProc.pid, self.ChildProc.returncode ) );
 						self.ChildProc = None;
 
 			except Exception as e:
 				ExceptionCount += 1;
-				self.log.watcher( "Terminating Child, Caught exception:" );
+				self.log.watcher( "Terminating worker process, Caught exception:" );
 				self.log.watcher( traceback.format_exc() );
 				self.TerminateChild();
 
@@ -363,7 +352,7 @@ class BanBotWatcher( BanBotScript ):
 		self.ChildProc = subprocess.Popen( args,
 								stdout=CommandLineArgs.logfileh,
 								stderr=CommandLineArgs.logfileh, close_fds=True );
-		self.log.watcher( "Started Process, pid=%d" % self.ChildProc.pid );
+		self.log.watcher( "Started Worker Process, pid=%d" % self.ChildProc.pid );
 
 
 	def TerminateChild( self, sig=signal.SIGTERM ):
@@ -371,14 +360,15 @@ class BanBotWatcher( BanBotScript ):
 			return;
 
 		if( self.ChildProc.returncode is None ):
-			self.log.watcher( "Terminating child pid=%d" % ( self.ChildProc.pid ) );
+			self.log.watcher( "Terminating worker process pid=%d" % ( self.ChildProc.pid ) );
 			os.kill( self.ChildProc.pid, sig );
 			self.ChildProc.wait();
-			self.log.watcher( "Child process pid=%d has exited (%d)." % ( self.ChildProc.pid, self.ChildProc.returncode ) );
+			self.log.watcher( "Worker process pid=%d has exited (%d)." % ( self.ChildProc.pid, self.ChildProc.returncode ) );
 
 		self.ChildProc = None;
 
 	def OnExit( self ):
+		self.log.watcher( 'Shutdown pid={}'.format(os.getpid()));
 		CommandLineArgs.pidfile and open(CommandLineArgs.pidfile, 'w').write('0');
 		super(BanBotWatcher, self).OnExit();
 
@@ -389,9 +379,8 @@ class BanBotWatcher( BanBotScript ):
 
 	# noinspection PyUnusedLocal
 	def OnSignal_HUP( self, signum, frame ):
+		# @Todo Reloading of config file once config file functionality (YAML) is written
 		self.log.signals( "Reloading... (HUP SIGNAL)" );
-		# @IDEA-BUG signal.SIGHUP is not defined in stub
-		# noinspection PyUnresolvedReferences
 		self.TerminateChild( signal.SIGHUP );
 
 	# noinspection PyUnusedLocal
@@ -413,15 +402,21 @@ class BanBotWorker( BanBotScript ):
 	def __init__( self ):
 		BanBotScript.__init__( self );
 
+	def Initialize( self ):
+		self.log.worker( 'Startup pid={}'.format(os.getpid()));
+
+	def OnExit( self ):
+		self.log.worker( 'Shutdown pid={}'.format(os.getpid()));
+
 	def Execute( self ):
 		ExecutionThread = MilterThread( CommandLineArgs, RuleSet().LoadFromFile( '/etc/banbot/global.rf' ) );
 
 		while not self.ExitEvent.is_set():
 			time.sleep( 1 );
 
-		self.log.libmilter( "Stopping Milter..." );
+		self.log.libmilter( "Stopping pyMilter..." );
 		ExecutionThread.quit();
-		self.log.libmilter( "Stopped Milter..." );
+		self.log.libmilter( "Stopped pyMilter..." );
 
 	# noinspection PyUnusedLocal
 	def OnSignal_HUP( self, signum, frame ):
@@ -440,10 +435,9 @@ class BanBotWorker( BanBotScript ):
 
 if( __name__ == "__main__" ):
 	CommandMap = {
-		'start watcher' : BanBotWatcher,
+		'start watcher' : BanBotScript.Start,
 		'start worker'	: BanBotWorker,
 		'stop'			: BanBotScript.Stop,
-		'restart'		: BanBotScript.Restart,
 		'reload'		: BanBotScript.Reload,
 		'lint'			: BanBotScript.LintConfiguration,
 		'test'			: BanBotScript.TestPickledMessages
