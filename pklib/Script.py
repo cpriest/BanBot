@@ -7,14 +7,12 @@
 #
 
 from __future__ import print_function;
-import os
-import signal
-import threading
+import os, sys, signal, threading, traceback;
 
 import daemon;    # http://pypi.python.org/packages/source/p/python-daemon/python-daemon-1.5.5.tar.gz
 
 
-class Script:
+class Script(object):
 	def __init__( self ):
 		self.ppid = os.getppid();
 		self.ExitEvent = threading.Event();
@@ -83,3 +81,16 @@ class Script:
 			self.DaemonContext.close();
 		except:
 			pass;
+
+	@staticmethod
+	def ExitError( msg, IgnoredExceptions=() ):
+		if( sys.exc_info()[0] not in IgnoredExceptions and sys.exc_info()[0] is not None ):
+			sys.stderr.write( ''.join( '!! %s \n' % line for line in traceback.format_exc().split( '\n' )[:-1] ) + '\n' );
+		sys.stderr.write( msg + '\n' );
+		sys.exit( 1 );
+
+	@staticmethod
+	def Exit(msg, ExitCode=0):
+		print(msg);
+		sys.exit(ExitCode);
+
