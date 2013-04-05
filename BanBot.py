@@ -6,6 +6,8 @@
 # 		as is the pymilter library upon which it is built, the license can be found
 # 		here: http://www.gnu.org/licenses/fdl-1.3.txt
 #
+#	BUG: Specifying -d -dc all --logfile="" still logs some entries to the default logfile??
+#
 
 from __future__ import print_function;
 
@@ -23,6 +25,7 @@ from colors import *;
 from BanBotMilter import *;
 
 # pklib Imports
+import pklib.stdio;
 from pklib.Script import *;
 from pklib.ChannelLogger import *;
 from pklib.With import *;
@@ -142,13 +145,26 @@ class CommandLineArguments( ):
 		if( self.chroot is not None and not os.path.exists( self.chroot ) ):
 			Script.ExitError( 'Cannot chroot (-C %s), directory does not exist.' % self.chroot );
 
-		self.logfileh = open(self.logfile, 'a+', 1) if self.CreateOwnFile(self.logfile) else sys.stdout;
+		if(self.daemonize):
+			if(not self.logfile or self.logfile is None):
+				print('Warning, no logfile specified, output directed to /dev/null', file=sys.stderr);
+				self.logfile_handle = open('/dev/null', 'a+');
+			else:
+				if(self.CreateOwnFile(self.logfile)):
+					self.logfile_handle = open(self.logfile, 'a+', 1);
+		else:
+			if(self.logfile):
+				self.CreateOwnFile(self.logfile);
+				self.logfile_handle = pklib.stdio.Tee(self.logfile, 'a+');
+			else:
+				self.logfile_handle = sys.stdout;
 
 		self.full_cmd == 'start watcher' and \
 			self.pidfile and \
 				self.CreateOwnFile( self.pidfile );
 
 		# Non-configurable At the Moment
+		self.bb_test_account = 'bb-test@';
 #		self.pickle_path = '/var/cache/banbot/%d/';
 #		self.pickle_mode = self.PICKLE_UNMATCHED;
 
@@ -296,11 +312,11 @@ class BanBotWatcher( BanBotScript ):
 
 		if(CommandLineArgs.daemonize == True):
 			print('{ProgName} started.'.format(**FormatStdVars));
-			self.Daemonize( CommandLineArgs, stdout=CommandLineArgs.logfileh, stderr=CommandLineArgs.logfileh, files_preserve=None );
-			print( "---------------------------------------" );
+			self.Daemonize( CommandLineArgs, stdout=CommandLineArgs.logfile_handle, stderr=CommandLineArgs.logfile_handle, files_preserve=None );
 		else:
 			os.setgid(CommandLineArgs.gid);
 			os.setuid(CommandLineArgs.uid);
+		print( "---------------------------------------" );
 
 		if( CommandLineArgs.pidfile ):
 			pf = open( CommandLineArgs.pidfile, 'w+' );
@@ -339,7 +355,7 @@ class BanBotWatcher( BanBotScript ):
 
 				if( ExceptionCount > 5 ):
 					print( "Too many exceptions, exit(1);" );
-					exit( 1 );
+					self.ExitEvent.set();
 
 		# Exiting
 		self.TerminateChild();
@@ -348,13 +364,13 @@ class BanBotWatcher( BanBotScript ):
 	def StartChild( self ):
 		args = [ sys.argv[0], 'start','worker'];
 		if( CommandLineArgs.logfile ):
-			args += [ '--logfile', CommandLineArgs.logfile ];
+			args += [ '--logfile="{}"'.format(CommandLineArgs.logfile.replace('"','\\"'))];
 		if( CommandLineArgs.logchannels ):
 			args += [ '-dc' ] + CommandLineArgs.logchannels;
 
 		self.ChildProc = subprocess.Popen( args,
-								stdout=CommandLineArgs.logfileh,
-								stderr=CommandLineArgs.logfileh, close_fds=True );
+								stdout=CommandLineArgs.logfile_handle,
+								stderr=CommandLineArgs.logfile_handle, close_fds=True );
 		self.log.watcher( "Started Worker Process, pid=%d" % self.ChildProc.pid );
 
 

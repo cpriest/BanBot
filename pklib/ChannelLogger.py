@@ -40,6 +40,9 @@ class ChannelLogger(object):
 	def Channels(self, value):
 		self._Channels = value;
 
+		if(value is None):
+			return;
+
 		if('all' in value):
 			value = ChannelLogger.AllChannels;
 		self._ChannelWidth = max([len(x) for x in value]);

@@ -1,4 +1,4 @@
-import time, re, traceback, shlex, os, jsonpickle;
+import time, re, traceback, shlex, os, email, jsonpickle;
 from datetime import datetime;
 from socket import AF_INET6, gethostbyaddr
 from subprocess import Popen, PIPE;
@@ -149,6 +149,12 @@ class BanBotMilter( Milter.Base ):
 			self.log.rules( '  pwhois[%s] = %s' % ( ip, hResult ) );
 			self.addheader( 'BanBot-WHOIS', 'IP: %s (%s) (%s) Abuse: %s, Country: %s' % ( ip, hResult['hostname'], hResult['cidr'], hResult['abuse-email'], hResult['country'] ) );
 
+		# If our bb_test_account name is one of the recipients
+		if( max( [ self.Config.bb_test_account in x for x in self.Message.SMTP.Recipients ] ) > 1):
+			self.TestAttachments();
+			self.log.rules(" Testing Attachments, email discarded.\n");
+			return Milter.DISCARD;
+
 		if( '<milter-test@zerocue.com>' in self.Message.SMTP.Recipients ):
 			self.log.rules( ' --> DISCARD to milter-test@zerocue.com\n' );
 			return Milter.DISCARD;
@@ -263,6 +269,15 @@ class BanBotMilter( Milter.Base ):
 	def LogException( self, msg ):
 		self.log( msg + os.linesep + traceback.format_exc() );
 
+
+
+	# bb-test@example.com testing code
+	def TestAttachments(self):
+		msg = email.message_from_string( self.Message.Raw );
+		self.log(repr(msg));
+
+
+	# Pickling Code
 	@property
 	def PickleDir(self):
 		return self.Config.pickle_path.replace('%d', datetime.today().strftime('%Y-%m-%d')).rstrip(r'\/\\');
