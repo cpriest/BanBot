@@ -154,9 +154,9 @@ class BanBotMilter( Milter.Base ):
 			return Milter.DISCARD;
 
 		r = self.ProcessRuleSet();
-		if(r == Milter.CONTINUE):
-			if(self.Config.pickle_mode == self.Config.PICKLE_UNMATCHED):
-				self.StoreMessage();
+#		if(r == Milter.CONTINUE):
+#			if(self.Config.pickle_mode == self.Config.PICKLE_UNMATCHED):
+#				self.StoreMessage();
 
 		self.log.rules(" --> ACCEPTED \n");
 		return r;

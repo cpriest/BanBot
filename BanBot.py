@@ -149,8 +149,8 @@ class CommandLineArguments( ):
 				self.CreateOwnFile( self.pidfile );
 
 		# Non-configurable At the Moment
-		self.pickle_path = '/var/cache/banbot/%d/';
-		self.pickle_mode = self.PICKLE_UNMATCHED;
+#		self.pickle_path = '/var/cache/banbot/%d/';
+#		self.pickle_mode = self.PICKLE_UNMATCHED;
 
 	def CreateOwnFile( self, Filepath ):
 		if( Filepath ):
