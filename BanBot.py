@@ -6,13 +6,12 @@
 # 		as is the pymilter library upon which it is built, the license can be found
 # 		here: http://www.gnu.org/licenses/fdl-1.3.txt
 #
-#
 
 from __future__ import print_function;
 
 # Standard Libraries
 import errno
-import time, sys, traceback, os, subprocess, argparse;
+import time, sys, traceback, os, subprocess;
 from argparse import ArgumentParser;
 from threading import Thread;
 
@@ -64,17 +63,17 @@ class CommandLineArguments( ):
 
 		pg_opt = p_global.add_argument_group('Global Options');
 		pg_opt.add_argument('-h', '--help', 			help='Shows this help message', action='store_true');
-		pg_opt.add_argument('-l', '--logfile', 			help='Write output to the given log file', dest='logfile', metavar='FILE');
-		pg_opt.add_argument('-dc', '--debug-channels', 	help='Display logging for the given channel names, channels: {}'.format(', '.join(ChannelLogger.AllChannels), **FormatStdVars), metavar='CHAN', dest='logchannels', choices=ChannelLogger.AllChannels, nargs='+' )
 
 		# start ... options
 		p_start = myArgParse(description='Startup Options #22121', add_help=False, conflict_handler='resolve');
 		ps_opt = p_start.add_argument_group('Options');
-		ps_opt.add_argument('-u', '--user', 		help='Change the running user, only available if run as root', dest='user' );
-		ps_opt.add_argument('-g', '--group', 		help='Change the running group, only available if run as root', dest='group' );
-		ps_opt.add_argument('-C', '--chroot', 		help='Change the root directory to the given path\n\n', dest='chroot', metavar='DIR' )
-		ps_opt.add_argument('-d', '--daemonize', 	help='Runs the script as a daemon', action='store_true');
-		ps_opt.add_argument('-s', '--socket', 		help='Unix socket filepath, default: /tmp/BanBot.sock', metavar='FILE', default='/tmp/BanBot.sock');
+		ps_opt.add_argument('-u', '--user', 			help='Change the running user, only available if run as root', dest='user' );
+		ps_opt.add_argument('-g', '--group', 			help='Change the running group, only available if run as root', dest='group' );
+		ps_opt.add_argument('-C', '--chroot', 			help='Change the root directory to the given path\n\n', dest='chroot', metavar='DIR' )
+		ps_opt.add_argument('-d', '--daemonize',	 	help='Runs the script as a daemon', action='store_true');
+		ps_opt.add_argument('-s', '--socket', 			help='Unix socket filepath, default: /tmp/BanBot.sock', metavar='FILE', default='/tmp/BanBot.sock');
+		ps_opt.add_argument('-l', '--logfile', 			help='Write output to the given log file', dest='logfile', metavar='FILE', default='/var/log/BanBot.log');
+		ps_opt.add_argument('-dc', '--debug-channels', 	help='Display logging for the given channel names, channels: {}'.format(', '.join(ChannelLogger.AllChannels), **FormatStdVars), metavar='CHAN', dest='logchannels', choices=ChannelLogger.AllChannels, nargs='+' )
 
 		# process control options
 		p_process = myArgParse(description='Startup Options #22121', add_help=False, conflict_handler='resolve');
@@ -242,6 +241,9 @@ class BanBotScript( Script ):
 
 	@staticmethod
 	def Start():
+		if(BanBotScript.GetBanBotPid() > 0):
+			Script.ExitError('{ProgName} is already running'.format(**FormatStdVars));
+
 		BanBotWatcher();
 
 	@staticmethod
@@ -293,6 +295,7 @@ class BanBotWatcher( BanBotScript ):
 			os.unlink(CommandLineArgs.socket);
 
 		if(CommandLineArgs.daemonize == True):
+			print('{ProgName} started.'.format(**FormatStdVars));
 			self.Daemonize( CommandLineArgs, stdout=CommandLineArgs.logfileh, stderr=CommandLineArgs.logfileh, files_preserve=None );
 			print( "---------------------------------------" );
 		else:

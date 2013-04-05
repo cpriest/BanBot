@@ -12,7 +12,10 @@ USERNAME="postfix"
 GROUP="postfix"
 PROGRAM="/usr/bin/BanBot"
 PID_FILE="/var/run/${NAME}.pid"
-DEBUG_CHANNELS="proc libmilter watcher"
+DEBUG_CHANNELS="all"
+
+OPTS="-p ${PID_FILE}"
+START_OPTS="-u ${USERNAME} -g ${GROUP} -d -dc ${DEBUG_CHANNELS}"
 
 ORDERLY_WAIT=10
 DISORDERLY_WAIT=30
@@ -32,52 +35,54 @@ running() {
 }
 
 start() {
-	running && echo "${NAME} already running, pid=`cat ${PID_FILE}`" && exit 1;
-	echo -n "Starting ${NAME}...";
-	${PROGRAM} -u ${USERNAME} -g ${GROUP} -p ${PID_FILE} -d -dc ${DEBUG_CHANNELS} || { echo "FAILED (Could Not Start)"; }
+	${PROGRAM} start ${OPTS} ${START_OPTS};
 
-	timer_start;
-	while [ true ]; do
-		sleep 1;
-		running && break;
-		echo -n ".";
-		timer_update;
-		[[ ${time_sofar} -gt ${ORDERLY_WAIT} ]] && { echo "FAILED (Started but no longer running after ${time_sofar} seconds)"; return 1; }
-	done;
+#	running && echo "${NAME} already running, pid=`cat ${PID_FILE}`" && exit 1;
+#	echo -n "Starting ${NAME}...";
+#	${PROGRAM}  ${OPTS} || { echo "FAILED (Could Not Start)"; }
+
+#	timer_start;
+#	while [ true ]; do
+#		sleep 1;
+#		running && break;
+#		echo -n ".";
+#		timer_update;
+#		[[ ${time_sofar} -gt ${ORDERLY_WAIT} ]] && { echo "FAILED (Started but no longer running after ${time_sofar} seconds)"; return 1; }
+#	done;
 	
-	echo "OK (pid=`cat ${PID_FILE}`)";
-	return 0;
+#	echo "OK (pid=`cat ${PID_FILE}`)";
+#	return 0;
 }
 
 stop() {
-	running || { echo "${NAME} is not running" && return 0; }
+	${PROGRAM} stop ${OPTS}
+#	running || { echo "${NAME} is not running" && return 0; }
 	
-	echo -n "Stopping ${NAME}...";
+#	echo -n "Stopping ${NAME}...";
 
-	timer_start;
+#	timer_start;
 	
-	ORDERLY_SHUTDOWN=1;
-	kill -INT `cat ${PID_FILE}`;
-	while [ true ]; do
-		sleep 1;
-	 	timer_update;
-	 	running || break;
+#	ORDERLY_SHUTDOWN=1;
+#	kill -INT `cat ${PID_FILE}`;
+#	while [ true ]; do
+#		sleep 1;
+#	 	timer_update;
+#	 	running || break;
 
-		if [ ${ORDERLY_SHUTDOWN} -eq 1 ]; then
-			echo -n ".";
-		 	[[ ${time_sofar} -gt ${ORDERLY_WAIT} ]] && {
-	 			kill -INT `cat ${PID_FILE}`;
-	 			ORDERLY_SHUTDOWN=0;
-	 		}
-	 	else
-			echo -n "!";
-	 		[[ ${time_sofar} -gt ${DISORDERLY_WAIT} ]] && echo "FAILED \(-INT and -KILL\) after ${time_sofar} seconds..." && exit 1;
-	 	fi;
-	done;
+#		if [ ${ORDERLY_SHUTDOWN} -eq 1 ]; then
+#			echo -n ".";
+#		 	[[ ${time_sofar} -gt ${ORDERLY_WAIT} ]] && {
+#	 			ORDERLY_SHUTDOWN=0;
+#	 		}
+#	 	else
+#			echo -n "!";
+#	 		[[ ${time_sofar} -gt ${DISORDERLY_WAIT} ]] && echo "FAILED \(-INT and -KILL\) after ${time_sofar} seconds..." && exit 1;
+#	 	fi;
+#	done;
 
-	timer_update;
-	[ ${ORDERLY_SHUTDOWN} -eq 1 ] && echo -n 'OK (Orderly) ' || echo -n 'OK (Disorderly) '
-	echo "after ${time_sofar} seconds...";
+#	timer_update;
+#	[ ${ORDERLY_SHUTDOWN} -eq 1 ] && echo -n 'OK (Orderly) ' || echo -n 'OK (Disorderly) '
+#	echo "after ${time_sofar} seconds...";
 }
 
 restart() {
@@ -85,10 +90,11 @@ restart() {
 }
 
 reload() {
-	running || { echo "${NAME} is not running" && exit 1; }
+	${PROGRAM} reload ${OPTS}
+#	running || { echo "${NAME} is not running" && exit 1; }
 
-	echo "Reloading ${NAME}...OK";
-	kill -HUP `cat ${PID_FILE}`;
+#	echo "Reloading ${NAME}...OK";
+#	kill -HUP `cat ${PID_FILE}`;
 }
 
 case "$1" in
