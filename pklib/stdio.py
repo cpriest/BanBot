@@ -6,7 +6,7 @@ class Tee(object):
 	"""All writes to this file-like object will go to sys.stdout and the given filename"""
 
 	def __init__(self, name, mode):
-		self.file = open(name, mode, 1)
+		self.file = open(name, mode)
 		self.stdout = sys.stdout
 		sys.stdout = self
 

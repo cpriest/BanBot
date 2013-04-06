@@ -22,6 +22,9 @@
 #
 #		+ fwd as attachments to bb-console@example.com  -> Stores attachments to disk for working in bb console
 #
+# IDEA: bb-test@example.com
+#		Tests attached messages against existing rules and returns email with results
+#
 
 from __future__ import print_function;
 
@@ -53,10 +56,13 @@ sys.argv[0] = os.path.abspath( sys.argv[0] );
 ChannelLogger.AllChannels = ['worker', 'smtp', 'pickler', 'rules', 'libmilter', 'watcher', 'signals', 'all'];
 
 class App(object):
-	ProgName = 'BanBot';
+	ProgName 		= 'BanBot';
+	SignalWaitTime 	= 20;
 
 FormatStdVars = { 'ProgName' : App.ProgName };
 
+# Writes the sys.argv arguments to /var/log/BanBot.log -- for temporary debugging
+# print('sys.argv = {}'.format(str(sys.argv)), file=open('/var/log/BanBot.log', 'a+'));
 
 class myArgParse(ArgumentParser):
 	def error(self, message):
@@ -109,6 +115,7 @@ class CommandLineArguments( ):
 
 		cmd_stop 	= sp_cmds.add_parser('stop', 	help='Stops the {ProgName} daemon'.format(**FormatStdVars), parents=[p_global,p_process]);
 		cmd_reload 	= sp_cmds.add_parser('reload', 	help='Reloads the running configuration', parents=[p_global,p_process]);
+		cmd_restart = sp_cmds.add_parser('restart',	help='Restarts {ProgName} with the same parameters'.format(**FormatStdVars), parents=[p_global,p_process]);
 		cmd_lint 	= sp_cmds.add_parser('lint', 	help='Tests the syntax of active configuration and rule files', parents=[p_global]);
 		cmd_test 	= sp_cmds.add_parser('test', 	help='Tests rules against pickled messages', parents=[p_global]);
 
@@ -165,9 +172,9 @@ class CommandLineArguments( ):
 				self.logfile_handle = open('/dev/null', 'a+');
 			else:
 				if(self.CreateOwnFile(self.logfile)):
-					self.logfile_handle = open(self.logfile, 'a+', 1);
+					self.logfile_handle = open(self.logfile, 'a+');
 		else:
-			if(self.logfile):
+			if(self.logfile and sys.stdout.isatty()):
 				self.CreateOwnFile(self.logfile);
 				self.logfile_handle = pklib.stdio.Tee(self.logfile, 'a+');
 			else:
@@ -203,7 +210,7 @@ class CommandLineArguments( ):
 		return str( self.args );
 
 CommandLineArgs = CommandLineArguments();
-
+FormatStdVars['args'] = CommandLineArgs;
 
 class MilterThread( Thread ):
 	"""	Wraps a sendmail milter instance in a thread to prevent the sendmail library from stealing all signals"""
@@ -259,12 +266,12 @@ class BanBotScript( Script ):
 			and Script.ExitError('No pidfile specified, cannot control {ProgName}'.format(**FormatStdVars));
 
 		not os.path.exists(CommandLineArgs.pidfile) \
-			and Script.ExitError('Pidfile {} does not exist'.format(CommandLineArgs.pidfile, **FormatStdVars));
+			and Script.ExitError('Pidfile {args.pidfile} does not exist'.format(**FormatStdVars));
 
 		try:
 			pid = open(CommandLineArgs.pidfile, 'r').read();
 			if (pid == 0):
-				Script.ExitError('{ProgName} not running (pidfile {} shows pid 0)'.format(CommandLineArgs.pidfile, **FormatStdVars));
+				Script.ExitError('{ProgName} not running (pidfile {args.pidfile} shows pid 0)'.format(**FormatStdVars));
 			return int(pid);
 		except:
 			raise;
@@ -277,11 +284,28 @@ class BanBotScript( Script ):
 		BanBotWatcher();
 
 	@staticmethod
+	def Restart():
+		pid = BanBotScript.GetBanBotPid();
+		if(pid == 0):
+			Script.ExitError('{ProgName} is not running, {args.pidfile} shows pid of 0'.format(**FormatStdVars));
+		try:
+			os.kill(pid, signal.SIGQUIT);
+			Script.Exit('{ProgName} signaled to restart.'.format(**FormatStdVars));
+
+		except OSError as e:
+			if(e.errno == errno.ESRCH):
+				Script.Exit('{ProgName} of pid {} stopped, should have restarted.'.format(pid, **FormatStdVars));
+			if(e.errno == errno.EPERM):
+				Script.ExitError('You do not have sufficient permissions to restart {ProgName}'.format(**FormatStdVars));
+
+			Script.ExitError('Could not restart {ProgName} (pid={}): {!s}'.format(pid, e, **FormatStdVars));
+
+	@staticmethod
 	def Stop():
 		pid = BanBotScript.GetBanBotPid();
 		try:
 			os.kill(pid, signal.SIGTERM);
-			while(WaitForTimeout(10)):
+			while(WaitForTimeout(App.SignalWaitTime)):
 				os.kill(pid, 0);
 
 		except TimedOut as e:
@@ -317,6 +341,7 @@ class BanBotScript( Script ):
 class BanBotWatcher( BanBotScript ):
 
 	def __init__( self ):
+		self.RestartEvent = threading.Event();
 		BanBotScript.__init__( self );
 
 
@@ -325,7 +350,8 @@ class BanBotWatcher( BanBotScript ):
 			os.unlink(CommandLineArgs.socket);
 
 		if(CommandLineArgs.daemonize == True):
-			print('{ProgName} started.'.format(**FormatStdVars));
+			if(sys.stdout.isatty()):
+				print('{ProgName} started.'.format(**FormatStdVars));
 			self.Daemonize( CommandLineArgs, stdout=CommandLineArgs.logfile_handle, stderr=CommandLineArgs.logfile_handle, files_preserve=None );
 		else:
 			os.setgid(CommandLineArgs.gid);
@@ -377,8 +403,6 @@ class BanBotWatcher( BanBotScript ):
 
 	def StartChild( self ):
 		args = [ sys.argv[0], 'start','worker'];
-		if( CommandLineArgs.logfile ):
-			args += [ '--logfile="{}"'.format(CommandLineArgs.logfile.replace('"','\\"'))];
 		if( CommandLineArgs.logchannels ):
 			args += [ '-dc' ] + CommandLineArgs.logchannels;
 
@@ -404,11 +428,14 @@ class BanBotWatcher( BanBotScript ):
 		self.log.watcher( 'Shutdown pid={}'.format(os.getpid()));
 		CommandLineArgs.pidfile and open(CommandLineArgs.pidfile, 'w').write('0');
 		super(BanBotWatcher, self).OnExit();
+		if(self.RestartEvent.is_set()):
+			os.execv(sys.argv[0], sys.argv);	# 2nd param should include the name of the command being run as its first parameter per docs
 
 	# noinspection PyUnusedLocal
 	def OnSignal_QUIT( self, signum, frame ):
-		os.system( 'echo "test" | mail -s "test" milter-test@zerocue.com >/dev/null 2>&1 &' );
-		self.log( "Sent email to milter-test@zerocue.com\n" );
+		self.ExitEvent.set();
+		self.RestartEvent.set();
+		self.log.signals( "Restarting... (QUIT SIGNAL)" );
 
 	# noinspection PyUnusedLocal
 	def OnSignal_HUP( self, signum, frame ):
@@ -471,6 +498,7 @@ if( __name__ == "__main__" ):
 		'start watcher' : BanBotScript.Start,
 		'start worker'	: BanBotWorker,
 		'stop'			: BanBotScript.Stop,
+		'restart'		: BanBotScript.Restart,
 		'reload'		: BanBotScript.Reload,
 		'lint'			: BanBotScript.LintConfiguration,
 		'test'			: BanBotScript.TestPickledMessages

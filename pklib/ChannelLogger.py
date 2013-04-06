@@ -6,8 +6,9 @@
 #
 #
 
-import time
-import os
+from __future__ import print_function;
+import time, os;
+
 
 class ChannelLogger(object):
 	"""
