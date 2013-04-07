@@ -106,6 +106,10 @@ class Rule():
 	def __str__( self ):
 		return str( self.RuleAction ) if self.RuleAction is not None else None;
 
+	def __getattr__(self, item):
+		if(self.RuleAction is not None):
+			return getattr(self.RuleAction, item);
+
 	def GetResult( self, Message ):
 		return self.RuleAction.GetResult( Message );
 

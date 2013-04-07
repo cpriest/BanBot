@@ -16,8 +16,8 @@ class Reject( Action ):
 	DefaultRejectMessage = "Message rejected.";
 
 	def __init__( self, tokens ):
-		self.RejectCode = False;
-		self.RejectMessage = False;
+		self.RejectCode = Reject.DefaultRejectCode;
+		self.RejectMessage = Reject.DefaultRejectMessage;
 
 		if( isinstance( tokens[1], ParseResults ) ):
 			self.RejectCode = int( tokens[1][0] );

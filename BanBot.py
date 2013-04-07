@@ -6,25 +6,6 @@
 # 		as is the pymilter library upon which it is built, the license can be found
 # 		here: http://www.gnu.org/licenses/fdl-1.3.txt
 #
-#	BUG: Specifying -d -dc all --logfile="" still logs some entries to the default logfile??
-#	IDEA: bb console
-#		interactive console for testing rules against emails
-#			show message [num]		show message(s)
-#			list messages			list message(s) stored for console work
-#			list rules				lists active rules in effect for console
-#			delete [num] | all		Deletes the given message [num] or all from console storage
-#			test [num] | all		Tests the stored message [num] or all against rules
-#			clear rules				Clears all rules from console session
-#			remove rule [num]		Removes the given rule from the rule list (console session)
-#			add rule {rule}			Adds the given rule to end of the rule list (console session)
-#			prepend rule {rule}		Inserts the rule at the head of the rule list (console session)
-#			help					Shows console help
-#
-#		+ fwd as attachments to bb-console@example.com  -> Stores attachments to disk for working in bb console
-#
-# IDEA: bb-test@example.com
-#		Tests attached messages against existing rules and returns email with results
-#
 
 from __future__ import print_function;
 

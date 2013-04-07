@@ -1,7 +1,8 @@
 *.pyc
 *.pyo
-play/
+/play
 /.project
 /.idea
 /cmp_Milter.iml
 /out
+/deploy/settings

@@ -88,9 +88,6 @@ class BanBotMilter( Milter.Base ):
 
 		self.log.smtp( "rcpt to: %s, Friendly=%s, Email=%s" % ( to, Friendly, Email ) );
 
-		if( self.IsRevokedAddress( Email ) ):
-			return self.RejectMessage( '554 You shared %s without my permission, permission is now revoked' % Email );
-
 		return self.ProcessRuleSet();
 
 
@@ -198,6 +195,9 @@ class BanBotMilter( Milter.Base ):
 
 		if( milter_result != Milter.CONTINUE ):
 			self.log.rules( '%sed by rule: %s' % ( result, str( rule ) ) );
+
+		if( milter_result == Milter.REJECT ):
+			return self.RejectMessage('{rule.RejectCode} {rule.RejectMessage}'.format(rule=rule));
 
 		return milter_result;
 
