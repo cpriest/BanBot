@@ -121,12 +121,15 @@ class CommandLineArguments( ):
 			import pwd;
 
 			Error = 'Cannot set user (-u %s)' % self.user;
-			os.getuid() != 0 and Script.ExitError( Error + ', not running as root.' );
 
 			try:
 				self.args['uid'] = pwd.getpwnam( self.user )[2];
 			except:
 				Script.ExitError( Error + ', user not found.', [ KeyError ] );
+
+			os.getuid() not in (0, self.args['uid']) \
+				and Script.ExitError( Error + ', not running as root.' );
+
 		else:
 			self.uid = os.getuid();
 
@@ -135,12 +138,14 @@ class CommandLineArguments( ):
 
 			Error = 'Cannot set group (-g %s)' % self.group;
 
-			os.getuid() != 0 and Script.ExitError( Error + ', not running as root.' );
-
 			try:
 				self.args['gid'] = grp.getgrnam( self.group )[2];
 			except:
 				Script.ExitError( Error + ', group not found.', [ KeyError ] );
+
+			os.getgid() not in (0, self.args['gid']) \
+				and Script.ExitError( Error + ', not running as root.' );
+
 		else:
 			self.gid = os.getgid();
 

@@ -1,6 +1,4 @@
 bug: specifying -d -dc all --logfile="" still logs some entries to the default logfile??
-bug: bb restart, when already running as not root, passes -u and -g which fails to restart due to being non-root
-
 
 idea: bb console
 	interactive console for testing rules against emails
