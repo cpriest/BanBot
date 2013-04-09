@@ -83,14 +83,14 @@ class Script(object):
 			pass;
 
 	@staticmethod
-	def ExitError( msg, IgnoredExceptions=() ):
+	def ExitError( msg, ExitCode=os.EX_DATAERR, IgnoredExceptions=() ):
 		if( sys.exc_info()[0] not in IgnoredExceptions and sys.exc_info()[0] is not None ):
 			sys.stderr.write( ''.join( '!! %s \n' % line for line in traceback.format_exc().split( '\n' )[:-1] ) + '\n' );
 		sys.stderr.write( msg + '\n' );
-		sys.exit( 1 );
+		sys.exit( ExitCode );
 
 	@staticmethod
-	def Exit(msg, ExitCode=0):
+	def Exit(msg, ExitCode=os.EX_OK):
 		print(msg);
 		sys.exit(ExitCode);
 
