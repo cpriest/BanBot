@@ -37,6 +37,8 @@ class RuleSet():
 		self.Rules = [ ];
 		self.Mode = Mode;
 
+		self.Exceptions = [ ];
+
 	def ParseString( self, inputString ):
 
 		inputString = self._StripComments( inputString ).strip();
@@ -67,14 +69,9 @@ class RuleSet():
 
 				self.Rules.append( rule_object );
 
-			except RuleException as e:
-				print( "Exception while parsing rule:" );
-				print( indent( str( e ) ) );
-
-			except Exception:
-				print( "Exception while processing rule:" );
-				print( indent( rule_text ) );
-				traceback.print_exc( file=sys.stdout );
+			except BaseException as e:
+				e.traceback = sys.exc_info()[2];
+				self.Exceptions.append(e);
 
 		return self;
 

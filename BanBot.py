@@ -24,6 +24,7 @@ from BanBotMilter import *;
 
 # pklib Imports
 import pklib.stdio;
+from pklib.Output import *;
 from pklib.Script import *;
 from pklib.ChannelLogger import *;
 from pklib.With import *;
@@ -37,6 +38,7 @@ sys.argv[0] = os.path.abspath( sys.argv[0] );
 ChannelLogger.AllChannels = ['worker', 'smtp', 'pickler', 'rules', 'libmilter', 'watcher', 'signals', 'all'];
 
 class App(object):
+	RuleFilepath 	= '/etc/banbot/global.rf';
 	ProgName 		= 'BanBot';
 	SignalWaitTime 	= 20;
 
@@ -125,10 +127,10 @@ class CommandLineArguments( ):
 			try:
 				self.args['uid'] = pwd.getpwnam( self.user )[2];
 			except:
-				Script.ExitError( Error + ', user not found.', [ KeyError ] );
+				Script.ExitError( Error + ', user not found.', os.EX_NOUSER, [ KeyError ] );
 
 			os.getuid() not in (0, self.args['uid']) \
-				and Script.ExitError( Error + ', not running as root.' );
+				and Script.ExitError( Error + ', not running as root.', os.EX_USAGE );
 
 		else:
 			self.uid = os.getuid();
@@ -141,16 +143,16 @@ class CommandLineArguments( ):
 			try:
 				self.args['gid'] = grp.getgrnam( self.group )[2];
 			except:
-				Script.ExitError( Error + ', group not found.', [ KeyError ] );
+				Script.ExitError( Error + ', group not found.', os.EX_NOUSER, [ KeyError ] );
 
 			os.getgid() not in (0, self.args['gid']) \
-				and Script.ExitError( Error + ', not running as root.' );
+				and Script.ExitError( Error + ', not running as root.', os.EX_USAGE );
 
 		else:
 			self.gid = os.getgid();
 
 		if( self.chroot is not None and not os.path.exists( self.chroot ) ):
-			Script.ExitError( 'Cannot chroot (-C %s), directory does not exist.' % self.chroot );
+			Script.ExitError( 'Cannot chroot (-C %s), directory does not exist.' % self.chroot, os.EX_USAGE );
 
 		if(self.daemonize):
 			if(not self.logfile or self.logfile is None):
@@ -183,7 +185,7 @@ class CommandLineArguments( ):
 				os.chown( Filepath, self.uid, self.gid );
 				return True;
 			except Exception as e:
-				Script.ExitError('Unable to open file for writing: {}'.format(str(e), **FormatStdVars), [ IOError ]);
+				Script.ExitError('Unable to open file for writing: {}'.format(str(e), **FormatStdVars), os.EX_NOPERM,  [ IOError ]);
 		return False;
 
 	def __getattr__( self, name ):
@@ -249,79 +251,145 @@ class BanBotScript( Script ):
 	@staticmethod
 	def GetBanBotPid():
 		not CommandLineArgs.pidfile \
-			and Script.ExitError('No pidfile specified, cannot control {ProgName}'.format(**FormatStdVars));
+			and Script.ExitError('No pidfile specified, cannot control {ProgName}'.format(**FormatStdVars), os.EX_CONFIG);
 
 		not os.path.exists(CommandLineArgs.pidfile) \
-			and Script.ExitError('Pidfile {args.pidfile} does not exist'.format(**FormatStdVars));
+			and Script.ExitError('Pidfile {args.pidfile} does not exist'.format(**FormatStdVars), os.EX_CONFIG);
 
-		try:
-			pid = open(CommandLineArgs.pidfile, 'r').read();
-			if (pid == 0):
-				Script.ExitError('{ProgName} not running (pidfile {args.pidfile} shows pid 0)'.format(**FormatStdVars));
-			return int(pid);
-		except:
-			raise;
+		return int(open(CommandLineArgs.pidfile, 'r').read());
 
 	@staticmethod
-	def Start():
+	def TestConfiguration():
+		Errors = 0;
+		Warnings = 0;
+		Output = [ ];
+
+		try:
+			rs = RuleSet().LoadFromFile(App.RuleFilepath);
+			for e in rs.Exceptions:
+				if(type(e) == RuleException):
+					Output.append(yellow('Rule Could not be parsed, rule skipped:'));
+					Output.append(indent(str(e)));
+					Warnings += 1;
+				else:
+					Output.append(red('Exception while parsing rules:'));
+					Output.append(indent(str(e)));
+					Errors += 1;
+
+		except IOError as e:
+			Output.append(str(e));
+
+		except:
+			Output.append(red('Exception while loading rules from rule file: {}'.format(App.RuleFilepath)));
+			Output.append(indent(traceback.format_exc()));
+			Errors += 1;
+
+		return (Errors, Warnings, os.linesep.join(Output));
+
+
+
+class Commands(object):
+	"""All BanBot {commands} functions, return value is exit code"""
+
+	@staticmethod
+	def StartWatcher():
 		if(BanBotScript.GetBanBotPid() > 0):
-			Script.ExitError('{ProgName} is already running'.format(**FormatStdVars));
+			Script.ExitError('{ProgName} is already running'.format(**FormatStdVars), os.EX_USAGE);
 
 		BanBotWatcher();
+		return os.EX_OK;
+
+	@staticmethod
+	def StartWorker():
+		BanBotWorker();
+		return os.EX_OK;
 
 	@staticmethod
 	def Restart():
-		pid = BanBotScript.GetBanBotPid();
-		if(pid == 0):
-			Script.ExitError('{ProgName} is not running, {args.pidfile} shows pid of 0'.format(**FormatStdVars));
-		try:
-			os.kill(pid, signal.SIGQUIT);
-			Script.Exit('{ProgName} signaled to restart.'.format(**FormatStdVars));
+		if(Commands._Signal('restart', signal.SIGQUIT, False) == True):
+			print('{ProgName} signaled to restart.'.format(**FormatStdVars));
+			return os.EX_OK;
 
-		except OSError as e:
-			if(e.errno == errno.ESRCH):
-				Script.Exit('{ProgName} of pid {} stopped, should have restarted.'.format(pid, **FormatStdVars));
-			if(e.errno == errno.EPERM):
-				Script.ExitError('You do not have sufficient permissions to restart {ProgName}'.format(**FormatStdVars));
-
-			Script.ExitError('Could not restart {ProgName} (pid={}): {!s}'.format(pid, e, **FormatStdVars));
+		return os.EX_SOFTWARE;
 
 	@staticmethod
 	def Stop():
-		pid = BanBotScript.GetBanBotPid();
-		try:
-			os.kill(pid, signal.SIGTERM);
-			while(WaitForTimeout(App.SignalWaitTime)):
-				os.kill(pid, 0);
+		if(Commands._Signal('stop', signal.SIGTERM, True) == True):
+			print('{ProgName} stopped.'.format(**FormatStdVars));
+			return os.EX_OK;
 
-		except TimedOut as e:
-			Script.ExitError('{ProgName} (pid={}) did not exit after {} seconds'.format(pid, e.SecondsWaited, **FormatStdVars));
-
-		except OSError as e:
-			if(e.errno == errno.ESRCH):
-				Script.Exit('{ProgName} stopped.'.format(**FormatStdVars));
-			if(e.errno == errno.EPERM):
-				Script.ExitError('You do not have sufficient permissions to stop {ProgName}'.format(**FormatStdVars));
-
-			Script.ExitError('Could not kill {ProgName} (pid={}): {!s}'.format(pid, e, **FormatStdVars));
+		return os.EX_SOFTWARE;
 
 	@staticmethod
 	def Reload():
-		pid = BanBotScript.GetBanBotPid();
-		os.kill(pid, signal.SIGHUP);
-		print('Reloading configuration...');
+		ExitCode = Commands.LintConfigurationSummary();
+		if(ExitCode == os.EX_OK):
+			if(Commands._Signal('reload', signal.SIGHUP, False) == True):
+				print('Reloading configuration...');
+				return os.EX_OK;
+
+			return os.EX_SOFTWARE;
+
+		return ExitCode;
 
 	@staticmethod
-	def LintConfiguration():
-		print(red('lint not yet implemented', style='bold'));
-		pass;
+	def LintConfigurationDetailed():
+		Errors, Warnings, Output = BanBotScript.TestConfiguration();
+
+		print(Output + '\n');
+		return Commands.PrintLintConfigurationResults(Errors, Warnings);
+
+	@staticmethod
+	def LintConfigurationSummary():
+		Errors, Warnings, Output = BanBotScript.TestConfiguration();
+		return Commands.PrintLintConfigurationResults(Errors, Warnings);
 
 	@staticmethod
 	def TestPickledMessages():
 		print(red('test not yet implemented', style='bold'));
-		pass;
+		return 1;
 
+	@staticmethod
+	def PrintLintConfigurationResults(Errors, Warnings):
+		if (Errors > 0):
+			print(red('Configuration and rule files produced errors.'));
+			return 1;
 
+		if (Warnings > 0):
+			print(yellow('Configuration and rule files okay, with warnings.'));
+			return 0;
+
+		print(green('Configuration and rule files okay.'));
+		return 0;
+
+	@staticmethod
+	def _Signal(action, sig, wait):
+		pid = BanBotScript.GetBanBotPid();
+		if (pid == 0):
+			Script.ExitError('{ProgName} not running (pidfile {args.pidfile} shows pid 0)'.format(**FormatStdVars), os.EX_OK);
+
+		try:
+			os.kill(pid, sig);
+			if(wait):
+				while (WaitForTimeout(App.SignalWaitTime)):
+					os.kill(pid, 0);
+
+		except TimedOut as e:
+			Script.ExitError('{ProgName} (pid={}) did not {} after {} seconds'.format(pid, action, e.SecondsWaited, **FormatStdVars), os.EX_SOFTWARE);
+
+		except OSError as e:
+			if (e.errno == errno.ESRCH):
+				if(wait):
+					return True;
+				Script.ExitError('{ProgName} of pid {} could not be signaled, possibly not running.'.format(pid, **FormatStdVars), os.EX_UNAVAILABLE, (OSError));
+
+			elif (e.errno == errno.EPERM):
+				Script.ExitError('You do not have sufficient permissions to {} {ProgName}'.format(action, **FormatStdVars), os.EX_NOPERM, (OSError));
+
+			else:
+				Script.ExitError('Could not signal {ProgName} to {} (pid={}): {!s}'.format(action, pid, e, **FormatStdVars), os.EX_SOFTWARE);
+
+		return True;
 
 # Watches that the BanBotProcess is always running, if it dies, the water will re-start it
 class BanBotWatcher( BanBotScript ):
@@ -455,7 +523,7 @@ class BanBotWorker( BanBotScript ):
 		self.log.worker( 'Shutdown pid={}'.format(os.getpid()));
 
 	def Execute( self ):
-		ExecutionThread = MilterThread( CommandLineArgs, RuleSet().LoadFromFile( '/etc/banbot/global.rf' ) );
+		ExecutionThread = MilterThread( CommandLineArgs, RuleSet().LoadFromFile( App.RuleFilepath ) );
 
 		while not self.ExitEvent.is_set():
 			time.sleep( 1 );
@@ -481,17 +549,16 @@ class BanBotWorker( BanBotScript ):
 
 if( __name__ == "__main__" ):
 	CommandMap = {
-		'start watcher' : BanBotScript.Start,
-		'start worker'	: BanBotWorker,
-		'stop'			: BanBotScript.Stop,
-		'restart'		: BanBotScript.Restart,
-		'reload'		: BanBotScript.Reload,
-		'lint'			: BanBotScript.LintConfiguration,
-		'test'			: BanBotScript.TestPickledMessages
+		'start watcher' : Commands.StartWatcher,
+		'start worker'	: Commands.StartWorker,
+		'stop'			: Commands.Stop,
+		'restart'		: Commands.Restart,
+		'reload'		: Commands.Reload,
+		'lint'			: Commands.LintConfigurationDetailed,
+		'test'			: Commands.TestPickledMessages
 	};
 	if(CommandLineArgs.full_cmd in CommandMap):
-		CommandMap[CommandLineArgs.full_cmd]();
-		exit(0);
+		exit(CommandMap[CommandLineArgs.full_cmd]());
 
 	# This really shouldn't ever happen, but just in case.
 	print(red('Unknown command: {}'.format(CommandLineArgs.full_cmd, **FormatStdVars)));

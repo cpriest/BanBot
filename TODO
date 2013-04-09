@@ -1,4 +1,10 @@
 bug: specifying -d -dc all --logfile="" still logs some entries to the default logfile??
+bug: When not able to load global.rf, causes loop of errors.
+
+TODO:
+
+FEATURE: Add replacables to reject messages such as:
+		$rcpt_to - email address from the first RCPT TO command
 
 idea: bb console
 	interactive console for testing rules against emails

@@ -16,4 +16,4 @@ class RuleBase( object ):
 from Rule import *;
 from RuleSet import *;
 
-__all__ = [ 'Rule', 'RuleSet'];
+__all__ = [ 'Rule', 'RuleSet', 'RuleException'];

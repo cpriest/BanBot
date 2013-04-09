@@ -13,7 +13,7 @@ class Reject( Action ):
 	MatchResult = 'Reject';
 
 	DefaultRejectCode = 550;
-	DefaultRejectMessage = "Message rejected.";
+	DefaultRejectMessage = "Recipient address rejected. User unknown in virtual mailbox table";
 
 	def __init__( self, tokens ):
 		self.RejectCode = Reject.DefaultRejectCode;
