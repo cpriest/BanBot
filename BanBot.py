@@ -272,15 +272,17 @@ class BanBotScript( Script ):
 					Output.append(indent(str(e)));
 					Warnings += 1;
 				else:
-					Output.append(red('Exception while parsing rules:'));
+					Output.append(red('Exception while parsing rules:', style='bold'));
 					Output.append(indent(str(e)));
 					Errors += 1;
 
 		except IOError as e:
-			Output.append(str(e));
+			Output.append(red('Exception while loading rules from rule file: {}'.format(App.RuleFilepath), style='bold'));
+			Output.append(indent(str(e)));
+			Errors += 1;
 
 		except:
-			Output.append(red('Exception while loading rules from rule file: {}'.format(App.RuleFilepath)));
+			Output.append(red('Exception while loading rules from rule file: {}'.format(App.RuleFilepath), style='bold'));
 			Output.append(indent(traceback.format_exc()));
 			Errors += 1;
 
@@ -296,40 +298,50 @@ class Commands(object):
 		if(BanBotScript.GetBanBotPid() > 0):
 			Script.ExitError('{ProgName} is already running'.format(**FormatStdVars), os.EX_USAGE);
 
-		BanBotWatcher();
-		return os.EX_OK;
+		ExitCode = Commands.LintConfigurationSummary();
+		if(ExitCode == os.EX_OK):
+			BanBotWatcher();
+			return os.EX_OK;
+
+		print('{ProgName} not started.'.format(**FormatStdVars));
+		return ExitCode
 
 	@staticmethod
 	def StartWorker():
-		BanBotWorker();
-		return os.EX_OK;
+		ExitCode = Commands.LintConfigurationSummary(SilentOnOK=True);
+		if(ExitCode == os.EX_OK):
+			BanBotWorker();
+			return os.EX_OK;
+
+		print('{ProgName} not started.'.format(**FormatStdVars));
+		return ExitCode;
 
 	@staticmethod
 	def Restart():
-		if(Commands._Signal('restart', signal.SIGQUIT, False) == True):
+		ExitCode = Commands.LintConfigurationSummary();
+		if(ExitCode == os.EX_OK):
+			Commands._SignalOrExit('restart', signal.SIGQUIT, False);
 			print('{ProgName} signaled to restart.'.format(**FormatStdVars));
 			return os.EX_OK;
 
-		return os.EX_SOFTWARE;
+		print('{ProgName} not restarted.'.format(**FormatStdVars));
+		return ExitCode;
 
 	@staticmethod
 	def Stop():
-		if(Commands._Signal('stop', signal.SIGTERM, True) == True):
-			print('{ProgName} stopped.'.format(**FormatStdVars));
-			return os.EX_OK;
-
-		return os.EX_SOFTWARE;
+		Commands._SignalOrExit('stop', signal.SIGTERM, True);
+		print('{ProgName} stopped.'.format(**FormatStdVars));
+		return os.EX_OK;
 
 	@staticmethod
 	def Reload():
 		ExitCode = Commands.LintConfigurationSummary();
 		if(ExitCode == os.EX_OK):
-			if(Commands._Signal('reload', signal.SIGHUP, False) == True):
-				print('Reloading configuration...');
-				return os.EX_OK;
+			Commands._SignalOrExit('reload', signal.SIGHUP, False);
+			print('Reloading configuration...');
+			return os.EX_OK;
 
-			return os.EX_SOFTWARE;
-
+		print('{ProgName} not reloaded.'.format(**FormatStdVars));
 		return ExitCode;
 
 	@staticmethod
@@ -337,33 +349,36 @@ class Commands(object):
 		Errors, Warnings, Output = BanBotScript.TestConfiguration();
 
 		print(Output + '\n');
-		return Commands.PrintLintConfigurationResults(Errors, Warnings);
+		return Commands._PrintLintConfigurationResults(Errors, Warnings);
 
 	@staticmethod
-	def LintConfigurationSummary():
+	def LintConfigurationSummary(SilentOnOK=False):
 		Errors, Warnings, Output = BanBotScript.TestConfiguration();
-		return Commands.PrintLintConfigurationResults(Errors, Warnings);
+		if(SilentOnOK == True and Errors == 0):
+			return os.EX_OK;
+		return Commands._PrintLintConfigurationResults(Errors, Warnings);
 
 	@staticmethod
 	def TestPickledMessages():
 		print(red('test not yet implemented', style='bold'));
 		return 1;
 
+
 	@staticmethod
-	def PrintLintConfigurationResults(Errors, Warnings):
+	def _PrintLintConfigurationResults(Errors, Warnings):
 		if (Errors > 0):
-			print(red('Configuration and rule files produced errors.'));
-			return 1;
+			print(red('Configuration and rule files produced errors (use banbot lint for detail).', style='bold'));
+			return os.EX_CONFIG;
 
 		if (Warnings > 0):
-			print(yellow('Configuration and rule files okay, with warnings.'));
-			return 0;
+			print(yellow('Configuration and rule files okay, with warnings (use banbot lint for detail).'));
+			return os.EX_OK;
 
 		print(green('Configuration and rule files okay.'));
-		return 0;
+		return os.EX_OK;
 
 	@staticmethod
-	def _Signal(action, sig, wait):
+	def _SignalOrExit(action, sig, wait):
 		pid = BanBotScript.GetBanBotPid();
 		if (pid == 0):
 			Script.ExitError('{ProgName} not running (pidfile {args.pidfile} shows pid 0)'.format(**FormatStdVars), os.EX_OK);
@@ -561,4 +576,4 @@ if( __name__ == "__main__" ):
 		exit(CommandMap[CommandLineArgs.full_cmd]());
 
 	# This really shouldn't ever happen, but just in case.
-	print(red('Unknown command: {}'.format(CommandLineArgs.full_cmd, **FormatStdVars)));
+	print(red('Unknown command: {}'.format(CommandLineArgs.full_cmd, **FormatStdVars), style='bold'));
