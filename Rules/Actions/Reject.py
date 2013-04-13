@@ -16,23 +16,36 @@ class Reject( Action ):
 	DefaultRejectMessage = "Recipient address rejected. User unknown in virtual mailbox table";
 
 	def __init__( self, tokens ):
-		self.RejectCode = Reject.DefaultRejectCode;
-		self.RejectMessage = Reject.DefaultRejectMessage;
+		self._RejectCode = None;
+		self._RejectMessage = None;
 
 		if( isinstance( tokens[1], ParseResults ) ):
-			self.RejectCode = int( tokens[1][0] );
+			self._RejectCode = int( tokens[1][0] );
 			if( len( tokens[1] ) == 2 ):
-				self.RejectMessage = tokens[1][1];
+				self._RejectMessage = tokens[1][1];
 			Action.__init__( self, tokens[2] );
 		else:
 			Action.__init__( self, tokens[1] );
 
 	@property
+	def RejectCode(self):
+		if(self._RejectCode is None):
+			return self.DefaultRejectCode;
+		return self._RejectCode;
+
+	@property
+	def RejectMessage(self):
+		if (self._RejectMessage is None):
+			return self.DefaultRejectMessage;
+		return self._RejectMessage;
+
+	@property
 	def Command( self ):
-		if( self.RejectCode == False ):
+		if( self._RejectCode is None ):
 			return super(Reject, self).Command;
 
-		if( self.RejectMessage == False ):
-			return '%s with %d' % ( super(Reject, self).Command, self.RejectCode );
-		return '%s with %d "%s"' % ( super(Reject, self).Command, self.RejectCode, self.RejectMessage );
+		if( self._RejectMessage is None ):
+			return '%s with %d' % ( super(Reject, self).Command, self._RejectCode );
+
+		return '%s with %d "%s"' % ( super(Reject, self).Command, self._RejectCode, self._RejectMessage );
 
