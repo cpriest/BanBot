@@ -10,8 +10,7 @@
 from __future__ import print_function;
 
 # Standard Libraries
-import errno
-import time, sys, traceback, os, subprocess;
+import errno,socket, time, sys, traceback, os, subprocess;
 from argparse import ArgumentParser;
 from threading import Thread;
 
@@ -35,7 +34,7 @@ from pklib.With import *;
 
 sys.argv[0] = os.path.abspath( sys.argv[0] );
 
-ChannelLogger.AllChannels = ['worker', 'smtp', 'pickler', 'rules', 'libmilter', 'watcher', 'signals', 'all'];
+ChannelLogger.AllChannels = ['worker', 'smtp', 'rules', 'libmltr', 'watch', 'signals', 'all'];
 
 class App(object):
 	RuleFilepath 	= '/etc/banbot/global.rf';
@@ -174,6 +173,8 @@ class CommandLineArguments( ):
 
 		# Non-configurable At the Moment
 		self.bb_test_account = 'bb-test@';
+		self.bb_admin_email = 'banbot-dev@zerocue.com';
+		self.bb_email_from = 'banbot@'+socket.getfqdn();
 #		self.pickle_path = '/var/cache/banbot/%d/';
 #		self.pickle_mode = self.PICKLE_UNMATCHED;
 

@@ -1,7 +1,13 @@
-import time, re, traceback, shlex, os, email, jsonpickle;
-from datetime import datetime;
+from __future__ import print_function;
+
+from cStringIO import StringIO;
+import time, re, traceback, shlex, os, email, sys;
 from socket import AF_INET6, gethostbyaddr
 from subprocess import Popen, PIPE;
+
+# jsonpickle code (commented out)
+# import jsonpickle;
+# from datetime import datetime;
 
 # Third Party Packages
 import Milter
@@ -10,6 +16,7 @@ from ipaddr import IPAddress
 # pklib Imports
 from pklib import *;
 from pklib.ChannelLogger import *;
+import pklib.Email as pklib;
 
 # Package Imports
 from Rules import *;
@@ -18,11 +25,21 @@ class BanBotMilter( Milter.Base ):
 	MSG_USER_UNKNOWN = '550 Recipient address rejected. User unknown in virtual mailbox table';
 
 	def __init__( self, config, rule_set ):    # A new instance with each new connection.
+		self._oldExceptionHook = sys.excepthook;
+		sys.excepthook = self.OnException;
+
 		self.id = Milter.uniqueID();    # Integer incremented with each call.
 		self.Message = AttrDict();    # Stores current known email information
 		self.ActiveRuleSet = rule_set;
 		self.Config = config;
-		self.log = ChannelLogger( '%T %c |{}| %m'.format(self.id), self.Config.logchannels);
+
+		LogPattern = '%T %c |{}| %m'.format(self.id);
+		self.log = ChannelLogger( LogPattern, self.Config.logchannels);
+
+		# AllLoggingOutput will contain all log messages for this instance, regardless
+		# of debug channel settings for use with debugging and exception catching
+		self.AllLoggingOutput = StringIO();
+		self.log.AddDestination(LogPattern, 'all', self.AllLoggingOutput);
 
 	# each connection runs in its own thread and has its own myMilter
 	# instance.	Python code must be thread safe.	This is trivial if only stuff
@@ -147,14 +164,14 @@ class BanBotMilter( Milter.Base ):
 			self.addheader( 'BanBot-WHOIS', 'IP: %s (%s) (%s) Abuse: %s, Country: %s' % ( ip, hResult['hostname'], hResult['cidr'], hResult['abuse-email'], hResult['country'] ) );
 
 		# If our bb_test_account name is one of the recipients
-		if( max( [ self.Config.bb_test_account in x for x in self.Message.SMTP.Recipients ] ) > 1):
+		if( max( [ self.Config.bb_test_account in x for x in self.Message.SMTP.Recipients ] ) == True):
 			self.TestAttachments();
 			self.log.rules(" Testing Attachments, email discarded.\n");
 			return Milter.DISCARD;
 
-		if( '<milter-test@zerocue.com>' in self.Message.SMTP.Recipients ):
-			self.log.rules( ' --> DISCARD to milter-test@zerocue.com\n' );
-			return Milter.DISCARD;
+#		if( '<milter-test@zerocue.com>' in self.Message.SMTP.Recipients ):
+#			self.log.rules( ' --> DISCARD to milter-test@zerocue.com\n' );
+#			return Milter.DISCARD;
 
 		r = self.ProcessRuleSet();
 #		if(r == Milter.CONTINUE):
@@ -167,7 +184,9 @@ class BanBotMilter( Milter.Base ):
 	def close( self ):
 		"""	always called, even when abort is called.	Clean up any external resources here."""
 
-		self.Cleanup();
+		self.tblWhoisTraces = [ ];
+		sys.excepthook = self._oldExceptionHook;
+
 		return Milter.CONTINUE
 
 
@@ -176,12 +195,9 @@ class BanBotMilter( Milter.Base ):
 
 		return Milter.CONTINUE
 
-
-	def Cleanup( self ):
-		"""Called whenever we are completing this thread (via close)"""
-		self.tblWhoisTraces = [ ];
-
-	## === Support Functions ===
+	#
+	# === Support Functions ===
+	#
 
 	def ProcessRuleSet( self ):
 		tMap = {
@@ -207,27 +223,10 @@ class BanBotMilter( Milter.Base ):
 		self.log.smtp('Adding Header: {} = {}'.format(name, value));
 		return Milter.Base.addheader(self, name, value);
 
+
 	# #
 	# # Custom Functions
 	# #
-
-	# # Returns true if the given email is a revoked email address
-	def IsRevokedAddress( self, email ):
-		RevokedPattern = r'((?:ronpaul)@zerocue\.com)'
-		if( re.search( RevokedPattern, email ) ):
-			return True;
-		return False;
-
-	# # Returns true if the given ip address is banned
-	def IsBannedSource( self, ip ):
-		return False;
-
-
-	# # Returns true if the given hostname matches a known approved relay
-	def IsApprovedRelay( self, hn ):
-		# Todo - "if hn matches "messagingengine.com"
-		return False;
-
 
 	def RejectMessage( self, Message ):
 		self.log.rules( " --> REJECT (%s)" % Message );
@@ -238,11 +237,20 @@ class BanBotMilter( Milter.Base ):
 		self.setreply( Code, '%s.%s.%s' % ( Code[0], Code[1], Code[2] ), Message );
 		return Milter.REJECT;
 
+
+	def AcceptMessage(self):
+		self.log.rules(" --> ACCEPTED \n");
+		return Milter.ACCEPT;
+
+
+	#
+	#	pwhois Functionality
+	#
+
 	def pwhois( self, ip ):
 		cmd = "pwhois -c /var/cache/pwhois -cd 30 %s" % ( ip );
 
 		self.tblWhoisTraces.append( [ip, Popen( shlex.split( cmd ), stdout=PIPE, stderr=PIPE )] );
-# 		self.log.rules("ip found: %s, launched: %s" % (ip, cmd));
 		return False;
 
 	def ProcessPwhoisOutput( self, ip, lines ):
@@ -270,6 +278,18 @@ class BanBotMilter( Milter.Base ):
 		self.log( msg + os.linesep + traceback.format_exc() );
 
 
+	def OnException(self, exctype, value, trace):
+		# Put old exception hook back, in case our own mail send causes an exception
+		sys.excepthook = self._oldExceptionHook;
+
+		self.log(os.linesep + ''.join(traceback.format_exception(exctype, value, trace)) + os.linesep);
+		pklib.SendEmail(self.Config.bb_email_from, self.Config.bb_admin_email, "Exception Caught From Banbot", self.AllLoggingOutput.getvalue());
+
+		# put ourselves back
+		sys.excepthook = self.OnException;
+
+		# pass exception through
+		self._oldExceptionHook(exctype, value, traceback);
 
 	# bb-test@example.com testing code
 	def TestAttachments(self):
@@ -277,22 +297,22 @@ class BanBotMilter( Milter.Base ):
 		self.log(repr(msg));
 
 
-	# Pickling Code
-	@property
-	def PickleDir(self):
-		return self.Config.pickle_path.replace('%d', datetime.today().strftime('%Y-%m-%d')).rstrip(r'\/\\');
-
-	@property
-	def PicklePath(self):
-		return self.PickleDir + os.sep + re.sub(r'([<>\\\\/]+|\.{2,})', '', self.Message.Headers['Message-Id'] or self.Message.Headers['Message-ID']);
-
-	def StoreMessage(self):
-		os.path.isdir(self.PickleDir) or os.makedirs(self.PickleDir, 0755);
-
-		jsonpickle.set_encoder_options('simplejson', indent=4);
-		jsonpickle.set_encoder_options('json', indent=4);
-		with open(self.PicklePath, 'w') as fh:
-			fh.write(jsonpickle.encode(self.Message));
-		self.addheader( 'X-BanBot-Pickle-Path', self.PicklePath );
-		self.log.pickler('Pickled message to %s' % self.PicklePath);
+	# # Pickling Code
+	# @property
+	# def PickleDir(self):
+	# 	return self.Config.pickle_path.replace('%d', datetime.today().strftime('%Y-%m-%d')).rstrip(r'\/\\');
+	#
+	# @property
+	# def PicklePath(self):
+	# 	return self.PickleDir + os.sep + re.sub(r'([<>\\\\/]+|\.{2,})', '', self.Message.Headers['Message-Id'] or self.Message.Headers['Message-ID']);
+	#
+	# def StoreMessage(self):
+	# 	os.path.isdir(self.PickleDir) or os.makedirs(self.PickleDir, 0755);
+	#
+	# 	jsonpickle.set_encoder_options('simplejson', indent=4);
+	# 	jsonpickle.set_encoder_options('json', indent=4);
+	# 	with open(self.PicklePath, 'w') as fh:
+	# 		fh.write(jsonpickle.encode(self.Message));
+	# 	self.addheader( 'X-BanBot-Pickle-Path', self.PicklePath );
+	# 	self.log.pickler('Pickled message to %s' % self.PicklePath);
 

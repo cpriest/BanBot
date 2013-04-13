@@ -1,26 +1,28 @@
-bug: specifying -d -dc all --logfile="" still logs some entries to the default logfile??
-bug: When not able to load global.rf, causes loop of errors.
-
-TODO:
-
-FEATURE: Add replacables to reject messages such as:
-		$rcpt_to - email address from the first RCPT TO command
-
-idea: bb console
-	interactive console for testing rules against emails
-		show message [num]		show message(s)
-		list messages			list message(s) stored for console work
-		list rules				lists active rules in effect for console
-		delete [num] | all		deletes the given message [num] or all from console storage
-		test [num] | all		tests the stored message [num] or all against rules
-		clear rules				clears all rules from console session
-		remove rule [num]		removes the given rule from the rule list (console session)
-		add rule {rule}			adds the given rule to end of the rule list (console session)
-		prepend rule {rule}		inserts the rule at the head of the rule list (console session)
-		help					shows console help
-
-	+ fwd as attachments to bb-console@example.com  -> stores attachments to disk for working in bb console
-
-idea: bb-test@example.com
-		tests attached messages against existing rules and returns email with results
-
+#!/bin/bash
+# 	bug: specifying -d -dc all --logfile="" still logs some entries to the default logfile??
+#
+# 	TODO:
+#
+# 	FEATURE: Add replacables to reject messages such as:
+# 			$rcpt_to - email address from the first RCPT TO command
+#
+# 	idea: bb console
+# 		interactive console for testing rules against emails
+# 			show message [num]		show message(s)
+# 			list messages			list message(s) stored for console work
+# 			list rules				lists active rules in effect for console
+# 			delete [num] | all		deletes the given message [num] or all from console storage
+# 			test [num] | all		tests the stored message [num] or all against rules
+# 			clear rules				clears all rules from console session
+# 			remove rule [num]		removes the given rule from the rule list (console session)
+# 			add rule {rule}			adds the given rule to end of the rule list (console session)
+# 			prepend rule {rule}		inserts the rule at the head of the rule list (console session)
+# 			help					shows console help
+#
+#	 	+ fwd as attachments to bb-console@example.com  -> stores attachments to disk for working in bb console
+#
+#	 idea: bb-test@example.com
+#	 		tests attached messages against existing rules and returns email with results
+#
+#	idea: Syntax addition - Allow File Inputs
+#		reject when routed from [/etc/banbot/spam_cidr]
