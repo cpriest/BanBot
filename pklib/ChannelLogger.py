@@ -7,7 +7,8 @@
 #
 
 from __future__ import print_function;
-import time, os;
+import time, os, sys;
+from pklib import AttrDict
 
 
 class ChannelLogger(object):
@@ -33,46 +34,76 @@ class ChannelLogger(object):
 
 	AllChannels = [ ];
 
-	@property
-	def Channels(self):
-		return self._Channels;
+	def __init__( self, Pattern='%T %m', Channels=(), io=sys.stdout ):
+		self.Destinations = [ ];
+#		self.Pattern = Pattern;
+#		self.Channels = Channels;
+		self.AddDestination(Pattern, Channels, io);
 
-	@Channels.setter
-	def Channels(self, value):
-		self._Channels = value;
-
-		if(value is None):
+	def AddDestination(self, Pattern, Channels, io):
+		if(Channels is None):
 			return;
 
-		if('all' in value):
-			value = ChannelLogger.AllChannels;
-		self._ChannelWidth = max([len(x) for x in value]);
+		ChannelsForWidth = Channels;
+		if('all' in Channels):
+			ChannelsForWidth = ChannelLogger.AllChannels;
+		ChannelWidth = max([len(x) for x in ChannelsForWidth]);
 
-	def __init__( self, Pattern='%T %m', Channels=() ):
-		self.Pattern = Pattern;
-		self.Channels = Channels;
+		self.Destinations.append( AttrDict(Pattern=Pattern, ChannelWidth=ChannelWidth, Channels=Channels, io=io) );
+
+	# @property
+	# def Channels(self):
+	# 	return self._Channels;
+	#
+	# @Channels.setter
+	# def Channels(self, value):
+	# 	self._Channels = value;
+	#
+	# 	if(value is None):
+	# 		return;
+	#
+	# 	if('all' in value):
+	# 		value = ChannelLogger.AllChannels;
+	# 	self._ChannelWidth = max([len(x) for x in value]);
 
 	def __call__( self, *args ):
-		self._logMessage( '', *args );
-		pass;
+		for d in self.Destinations:
+			self._logMessage( '', d, *args );
 
 	def __getattr__( self, name ):
-#		print('__getattr_: {}'.format(name));
-		if( self.Channels is not None and ( name in self.Channels or 'all' in self.Channels ) ):
-			def logMessage( *args ):
-				self._logMessage( name, *args );
-			return logMessage;
-		return self._ignoreMessage;
+		Destinations = [
+			d for d in self.Destinations
+				if d.Channels is not None
+					and ( name in d.Channels or 'all' in d.Channels )
+		];
+		if(len(Destinations) == 0):
+			return self._ignoreMessage;
+
+		def logMessage( *args ):
+			for d in Destinations:
+				self._logMessage( name, d, *args );
+		return logMessage;
+		# if( self.Channels is not None and ( name in self.Channels or 'all' in self.Channels ) ):
+		# 	def logMessage( *args ):
+		# 		self._logMessage( name, *args );
+		# 	return logMessage;
+		# return self._ignoreMessage;
 
 	def _ignoreMessage( self, *args ):
 		pass;
 
-	def _logMessage( self, Channel, *args ):
+	def _logMessage( self, Channel, Destination, *args ):
 		if( Channel != '' ):
-			Channel = ('{:'+str(self._ChannelWidth+3)+'}').format('[' + Channel + '] ');
+			Channel = ('{:'+str(Destination.ChannelWidth+3)+'}').format('[' + Channel + '] ');
+		else:
+			Channel = ' '*(Destination.ChannelWidth+3);
 
-		print( self.Pattern.
-				replace( '%T', time.strftime( '%Y %b %d %H:%M:%S' ) ).
-				replace( '%p', str( os.getpid() ) ).
-				replace( '%c ', Channel ).
-				replace( '%m', ' '.join( [ str( x ) for x in args] ) ) );
+		for x in args:
+			for line in str(x).splitlines():
+				Destination.io.write(
+					Destination.Pattern.
+						replace( '%T', time.strftime( '%Y %b %d %H:%M:%S' ) ).
+						replace( '%p', str( os.getpid() ) ).
+						replace( '%c ', Channel ).
+						replace( '%m', line + os.linesep )
+				);
