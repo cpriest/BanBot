@@ -1,0 +1,15 @@
+Tests that 'connected from' disallows email address types
+
+--RULE--
+accept when connected from nobody@nowhere.net;
+
+--EXPECT--
+Rule Input:
+	accept when connected from nobody@nowhere.net;
+
+Exception while parsing rule:
+	accept when connected from nobody@nowhere.net;
+	------------^
+	Unsupported value type: Email(nobody@nowhere.net) for connected from (at char 12), (line:1, col:13)
+
+==============================

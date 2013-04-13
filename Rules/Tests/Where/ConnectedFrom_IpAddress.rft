@@ -1,4 +1,4 @@
-Tests that 'connected from' is allowed syntax
+Tests that 'connected from' allows ip address/mask
 
 --RULE--
 accept when connected from 9.1.1.1/16;

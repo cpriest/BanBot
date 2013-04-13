@@ -73,6 +73,7 @@ class RuleSet():
 				if(self.Mode == RuleSet.TEST):
 					print("Exception while parsing rule:");
 					print(indent(str(e)));
+					print('', '==============================', '', sep='\n');
 				else:
 					e.traceback = sys.exc_info()[2];
 					self.Exceptions.append(e);

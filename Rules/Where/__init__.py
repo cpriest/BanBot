@@ -13,20 +13,26 @@ from .. import RuleBase;
 #
 # 	Where Handlers - Base class for all Where Handlers (WhereTo, WhereFrom)
 #
+from pyparsing import ParseFatalException
+
 
 class WhereBase( RuleBase ):
 	Automatic = '';
 	Modifiers = { };
 
-	def __init__( self, tokens ):
+	def __init__( self, tokens, line, pos ):
 		self.item = None;
 		self.Modifier = self.Automatic;
 
-		if( tokens[0].lower() in self.Modifiers.keys() ):
-			self.Modifier = tokens[0].lower();
-			self.SetParam( tokens[2] );
-		else:
-			self.SetParam( tokens[1] );
+		try:
+			if( tokens[0].lower() in self.Modifiers.keys() ):
+				self.Modifier = tokens[0].lower();
+				self.SetParam( tokens[2] );
+			else:
+				self.SetParam( tokens[1] );
+
+		except ValueError as e:
+			raise ParseFatalException(str(e), pos, str(e), self);
 
 		# Validate sub-class has implemented all Matches* functions
 		for Modifier in self.Modifiers.keys():
@@ -34,6 +40,10 @@ class WhereBase( RuleBase ):
 				raise AssertionError( '%s has not implemented method Matches%s for modifier %s.' % ( self.ClassName, Modifier.title(), Modifier ) );
 
 	def SetParam( self, item ):
+		if(self.Modifier != self.Automatic):
+			if(not isinstance(item, tuple(self.Modifiers[self.Modifier]))):
+				raise ValueError('Unsupported value type: {!s}({}) for {}'.format(type(item).__name__, item, self.Command));
+
 		self.item = item;
 
 	@property

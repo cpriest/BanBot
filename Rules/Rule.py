@@ -11,7 +11,7 @@ from __future__ import print_function;
 import os;
 
 # Package Imports
-from Parser import ParseRuleStatement, ParseException;
+from Parser import ParseRuleStatement, ParseException, ParseFatalException;
 
 from Actions import *;
 
@@ -96,7 +96,7 @@ class Rule():
 		try:
 			self.RuleAction = ParseRuleStatement.parseString( rule_text )[0];
 
-		except ParseException as e:
+		except (ParseFatalException, ParseException) as e:
 			message = self.RuleText + os.linesep + ( '-' * ( e.col - 1 ) + '^' ) + os.linesep + str( e );
 			raise RuleException( self, message, e );
 

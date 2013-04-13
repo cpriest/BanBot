@@ -19,9 +19,9 @@ class WhereFrom( WhereBase ):
 	Routed 		 = 'routed';
 
 	Modifiers = {
-		Connected	: [ ],
-		Envelope	: [ ],
-		Routed		: [ ],
+		Connected	: [ IPMask, Domain ],
+		Envelope	: [ Email, Domain ],
+		Routed		: [ IPMask, Domain ],
 	};
 
 	def MatchesConnected( self, Message ):
@@ -30,13 +30,13 @@ class WhereFrom( WhereBase ):
 		if(isinstance(self.item, Domain)):
 			return self.item.Matches(Message.SMTP.Client_Hostname);
 
-		raise ValueError('Unsupported match type: {!s} for WhereFrom(Connected).'.format(type(self.item).__name__));
+		return False;
 
 	def MatchesEnvelope( self, Message ):
 		if(isinstance(self.item, (Domain, Email))):
 			return self.item.Matches(Message.Headers['From']);
 
-		raise ValueError('Unsupported match type: {!s} for WhereFrom(Envelope).'.format(type(self.item).__name__));
+		return False;
 
 	def MatchesRouted( self, Message ):
 		if(isinstance(self.item, IPMask)):
@@ -50,12 +50,10 @@ class WhereFrom( WhereBase ):
 					pass;		# Possible Debug Info Here
 				except:
 					pass;
-			return False;
 
 		if(isinstance(self.item, Domain)):
 			for h in Message.Headers['Received']:
 				if(self.item.Matches(h)):
 					return True;
-			return False;
 
-		raise ValueError('Unsupported match type: {!s} for WhereFrom(Envelope).'.format(type(self.item).__name__));
+		return False;

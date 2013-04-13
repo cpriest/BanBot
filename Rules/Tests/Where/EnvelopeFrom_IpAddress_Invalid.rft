@@ -1,0 +1,15 @@
+Tests that 'envelope from' disallows ip addresses/masks
+
+--RULE--
+accept when envelope from 9.1.1.1/16;
+
+--EXPECT--
+Rule Input:
+	accept when envelope from 9.1.1.1/16;
+
+Exception while parsing rule:
+	accept when envelope from 9.1.1.1/16;
+	------------^
+	Unsupported value type: IPMask(9.1.1.1/16) for envelope from (at char 12), (line:1, col:13)
+
+==============================

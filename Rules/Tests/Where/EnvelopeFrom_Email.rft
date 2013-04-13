@@ -1,0 +1,16 @@
+Tests that 'envelope from' allows an email type
+
+--RULE--
+accept when envelope from nobody@nowhere.net;
+
+--EXPECT--
+Rule Input:
+	accept when envelope from nobody@nowhere.net;
+
+Rule Result:
+	Accept WhereFrom( Email('nobody@nowhere.net') )
+
+Rule Text From Result:
+	accept when envelope from nobody@nowhere.net;
+
+==============================

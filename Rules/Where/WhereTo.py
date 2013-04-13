@@ -7,12 +7,14 @@
 #
 
 from . import WhereBase;
+from Rules.Types import *;
+
 
 class WhereTo( WhereBase ):
 	Envelope 	 = 'envelope';
 
 	Modifiers = {
-		Envelope	: [ ],
+		Envelope	: [ Email, Domain ],
 	};
 
 	def MatchesEnvelope( self, Message ):
