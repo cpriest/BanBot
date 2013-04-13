@@ -60,10 +60,10 @@ class Rule():
 										Valid Data Types: ipMask | domain
 
 						envelope	- Indicates that the rule matches against the envelope from address
-										Valid Data Types: emailAddress
+										Valid Data Types: emailAddress | domain
 
 						routed		- Indicates that the rule can match on any entry of a received header
-										Valid Data Types: ipMask | domain | emailAddress
+										Valid Data Types: ipMask | domain
 
 					[ envelope ] to ( domain | emailAddress )
 

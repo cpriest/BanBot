@@ -13,7 +13,11 @@ from . import MatchType;
 class IPMask( MatchType ):
 	def SetToken( self, token ):
 		super(IPMask, self).SetToken(token);
-		self.IpAddress = IPNetwork( token );
+		self.IpNetwork = IPNetwork( token );
+
+	# Match the content item against the ip mask
+	def MatchesContentItem( self, ContentItem ):
+		return IPNetwork(ContentItem) in self.IpNetwork;
 
 	def __str__( self ):
-		return str( self.IpAddress );
+		return str( self.IpNetwork );
