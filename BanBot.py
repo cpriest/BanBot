@@ -67,6 +67,7 @@ class CommandLineArguments( ):
 		p_global = myArgParse(add_help=False, conflict_handler='resolve');
 
 		pg_opt = p_global.add_argument_group('Global Options');
+		pg_opt.add_argument('-v',						help='Verbosity level, each -v will increase the verbosity level', dest='verbosity', action='count', default=1);
 		pg_opt.add_argument('-h', '--help', 			help='Shows this help message', action='store_true');
 
 		# start ... options
@@ -99,6 +100,10 @@ class CommandLineArguments( ):
 		cmd_reload 	= sp_cmds.add_parser('reload', 	help='Reloads the running configuration', parents=[p_global,p_process]);
 		cmd_restart = sp_cmds.add_parser('restart',	help='Restarts {ProgName} with the same parameters'.format(**FormatStdVars), parents=[p_global,p_process]);
 		cmd_lint 	= sp_cmds.add_parser('lint', 	help='Tests the syntax of active configuration and rule files', parents=[p_global]);
+		lint_opt 	= cmd_lint.add_argument_group('Options');
+		lint_opt.add_argument('-si', 	'--show-interpreted', 			help='Iterates the rules and shows the interpreted results', dest='show_interp', action='store_true');
+		lint_opt.add_argument('-sii', 	'--show-interpreted-internal', 	help='Iterates the rules and shows the internal representation results', dest='show_interp_int', action='store_true');
+
 		cmd_test 	= sp_cmds.add_parser('test', 	help='Tests rules against pickled messages', parents=[p_global]);
 
 		if(len(sys.argv) == 1):
@@ -276,6 +281,17 @@ class BanBotScript( Script ):
 					Output.append(red('Exception while parsing rules:', style='bold'));
 					Output.append(indent(str(e)));
 					Errors += 1;
+
+			if(CommandLineArgs.show_interp or CommandLineArgs.show_interp_int):
+				Output.append('\nRules Interpreted as:');
+				for index, r in enumerate(rs.Rules):
+					if(index > 0):
+						Output.append('----');
+					if(CommandLineArgs.show_interp):
+						Output.append(indent(str(r)));
+					if(CommandLineArgs.show_interp_int):
+						Output.append(indent(repr(r)));
+				Output.append('');
 
 		except IOError as e:
 			Output.append(red('Exception while loading rules from rule file: {}'.format(App.RuleFilepath), style='bold'));
