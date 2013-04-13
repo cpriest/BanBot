@@ -69,9 +69,22 @@ class RuleSet():
 
 				self.Rules.append( rule_object );
 
-			except BaseException as e:
-				e.traceback = sys.exc_info()[2];
-				self.Exceptions.append(e);
+			except RuleException as e:
+				if(self.Mode == RuleSet.TEST):
+					print("Exception while parsing rule:");
+					print(indent(str(e)));
+				else:
+					e.traceback = sys.exc_info()[2];
+					self.Exceptions.append(e);
+
+			except Exception:
+				if(self.Mode == RuleSet.TEST):
+					print("Exception while processing rule:");
+					print(indent(rule_text));
+					traceback.print_exc(file=sys.stdout);
+				else:
+					e.traceback = sys.exc_info()[2];
+					self.Exceptions.append(e);
 
 		return self;
 
