@@ -1,4 +1,4 @@
-Tests that 'routed from' is allowed syntax
+Tests that 'routed from' allows ip/mask
 
 --RULE--
 accept when routed from 9.1.1.1/16;

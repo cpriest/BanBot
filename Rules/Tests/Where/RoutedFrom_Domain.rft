@@ -1,0 +1,16 @@
+Tests that 'routed from' allows domain
+
+--RULE--
+accept when routed from test.com;
+
+--EXPECT--
+Rule Input:
+	accept when routed from test.com;
+
+Rule Result:
+	Accept WhereFrom( Domain('test.com') )
+
+Rule Text From Result:
+	accept when routed from test.com;
+
+==============================

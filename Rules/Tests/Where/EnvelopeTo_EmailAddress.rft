@@ -1,4 +1,4 @@
-Tests that 'envelope to' is allowed syntax
+Tests that 'envelope to' allows email address
 
 --RULE--
 accept when envelope to nobody@nowhere.net;

@@ -2,7 +2,6 @@
 # 	bug: specifying -d -dc all --logfile="" still logs some entries to the default logfile??
 #
 # 	TODO:
-#		Add tests for valid/invalid types for remaining WhereFrom/WhereTo
 #
 # 	FEATURE: Add replacables to reject messages such as:
 # 			$rcpt_to - email address from the first RCPT TO command
