@@ -108,6 +108,9 @@ class RuleSet():
 		# Strip Comments
 		s = re.sub( r'\s*#.+', '', s );
 
+		# Strip Multi Line Comments
+		s = re.sub(r'(?s)/\*.+?\*/', '', s);
+
 		# Un-proxy double-quoted strings
 		for index, item in enumerate( dqs ):
 			s = s.replace( '![{' + str( index ) + '}]!', item );
