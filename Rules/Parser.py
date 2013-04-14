@@ -22,7 +22,8 @@ def DumpParseActions( line, pos, tokens ):
 	print( '-----' );
 
 HashComment = Literal( '#' ) + SkipTo( LineEnd() );
-Comments = HashComment;
+MultiLineComment = Literal('/*') + SkipTo(Literal('*/'));
+Comments = HashComment | MultiLineComment;
 
 dblQuotedString = QuotedString( '"', escChar='\\' );
 endOfStmt = Literal( ';' ).suppress();
@@ -35,8 +36,8 @@ type_IPMask = Regex( r'(\d+\.\d+\.\d+\.\d+)\/?(\d+)?' ).setParseAction( lambda l
 type_Domain = Regex( r'([A-Za-z0-9.-]+)\.([A-Za-z]{2,4})' ).setParseAction( lambda line, pos, tokens: Domain( tokens[0] ) );
 type_Email = Regex( r'([A-Za-z0-9._%+-]+)@(?:([A-Za-z0-9.-]+)\.([A-Za-z]{2,4}))?' ).setParseAction( lambda line, pos, tokens: Email( tokens[0] ) );
 
-grp_FromParts = ( type_IPMask | type_Domain | type_Email );
-grp_ToParts = ( type_Domain | type_Email );
+grp_FromParts = delimitedList( type_IPMask | type_Domain | type_Email );
+grp_ToParts = delimitedList( type_Domain | type_Email );
 
 whereFrom = ( Optional( oneOf( WhereFrom.Modifiers.keys(), caseless=True ) ) + CaselessKeyword( 'from' ) + grp_FromParts ).setParseAction( lambda line, pos, tokens: WhereFrom( tokens, line, pos ) );
 whereTo	 = ( Optional( oneOf( WhereTo.Modifiers.keys(), caseless=True ) ) + CaselessLiteral( 'to' ) + grp_ToParts ).setParseAction( lambda line, pos, tokens: WhereTo( tokens, line, pos ) );

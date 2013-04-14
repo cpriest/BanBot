@@ -25,35 +25,38 @@ class WhereFrom( WhereBase ):
 	};
 
 	def MatchesConnected( self, Message ):
-		if(isinstance(self.item, IPMask)):
-			return self.item.Matches(Message.SMTP.Client_IP);
-		if(isinstance(self.item, Domain)):
-			return self.item.Matches(Message.SMTP.Client_Hostname);
+		for item in self.items:
+			if(isinstance(item, IPMask) and item.Matches(Message.SMTP.Client_IP)):
+				return True;
+			if(isinstance(item, Domain) and item.Matches(Message.SMTP.Client_Hostname)):
+				return True;
 
 		return False;
 
 	def MatchesEnvelope( self, Message ):
-		if(isinstance(self.item, (Domain, Email))):
-			return self.item.Matches(Message.Headers['From']);
+		for item in self.items:
+			if(isinstance(item, (Domain, Email)) and item.Matches(Message.Headers['From'])):
+				return True;
 
 		return False;
 
 	def MatchesRouted( self, Message ):
-		if(isinstance(self.item, IPMask)):
-			for h in Message.Headers['Received']:
-				try:
-					ip = re.search( r'(\d+\.\d+\.\d+\.\d+)', h ).group( 1 );
+		for item in self.items:
+			if(isinstance(item, IPMask)):
+				for h in Message.Headers['Received']:
+					try:
+						ip = re.search( r'(\d+\.\d+\.\d+\.\d+)', h ).group( 1 );
 
-					if(self.item.Matches(ip)):
+						if(item.Matches(ip)):
+							return True;
+					except AttributeError:
+						pass;		# Possible Debug Info Here
+					except:
+						pass;
+
+			if(isinstance(item, Domain)):
+				for h in Message.Headers['Received']:
+					if(item.Matches(h)):
 						return True;
-				except AttributeError:
-					pass;		# Possible Debug Info Here
-				except:
-					pass;
-
-		if(isinstance(self.item, Domain)):
-			for h in Message.Headers['Received']:
-				if(self.item.Matches(h)):
-					return True;
 
 		return False;

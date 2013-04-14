@@ -54,7 +54,7 @@ class Rule():
 					[match_modifier] - Omitting a match modifier makes a best guess based on the {data_type} specified
 										by attempting to utilize one of the modifiers below, in the order specified below
 
-					[ routed | connected | envelope ] from ( ipMask | domain | emailAddress )
+					[ routed | connected | envelope ] from ( ipMask | domain | emailAddress, ... )
 
 						connected	- Indicates that the rule matches against the connecting client
 										Valid Data Types: ipMask | domain
@@ -65,7 +65,7 @@ class Rule():
 						routed		- Indicates that the rule can match on any entry of a received header
 										Valid Data Types: ipMask | domain
 
-					[ envelope ] to ( domain | emailAddress )
+					[ envelope ] to ( domain | emailAddress, ... )
 
 						envelope	- Indicates that the rule matches against the envelope to address
 										Valid Data Types: domain | emailAddress
@@ -80,6 +80,10 @@ class Rule():
 				or | ||			- Logical or operator
 
 	You may mix and match && and || with parenthesis for grouping, see Rules/Tests for examples.
+
+	Comments:
+		Any # to end of line is a comment
+		Multi-line C+ style comments /* ... */
 
 	Rule Handling:
 		- First rule to match wins, rule order matters.

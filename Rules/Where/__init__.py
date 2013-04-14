@@ -21,15 +21,15 @@ class WhereBase( RuleBase ):
 	Modifiers = { };
 
 	def __init__( self, tokens, line, pos ):
-		self.item = None;
+		self.items = [ ];
 		self.Modifier = self.Automatic;
 
 		try:
 			if( tokens[0].lower() in self.Modifiers.keys() ):
 				self.Modifier = tokens[0].lower();
-				self.SetParam( tokens[2] );
+				self.AddItems( tokens[2:] );
 			else:
-				self.SetParam( tokens[1] );
+				self.AddItems( tokens[1:] );
 
 		except ValueError as e:
 			raise ParseFatalException(str(e), pos, str(e), self);
@@ -39,12 +39,16 @@ class WhereBase( RuleBase ):
 			if( 'Matches%s' % Modifier.title() not in dir( self ) ):
 				raise AssertionError( '%s has not implemented method Matches%s for modifier %s.' % ( self.ClassName, Modifier.title(), Modifier ) );
 
-	def SetParam( self, item ):
+	def AddItems(self, items):
+		for item in items:
+			self.AddItem(item);
+
+	def AddItem( self, item ):
 		if(self.Modifier != self.Automatic):
 			if(not isinstance(item, tuple(self.Modifiers[self.Modifier]))):
 				raise ValueError('Unsupported value type: {!s}({}) for {}'.format(type(item).__name__, item, self.Command));
 
-		self.item = item;
+		self.items.append(item);
 
 	@property
 	def Command( self ):
@@ -56,10 +60,10 @@ class WhereBase( RuleBase ):
 
 
 	def __repr__( self ):
-		return "%s( %s )" % ( self.ClassName, repr( self.item ) );
+		return "%s( %s )" % ( self.ClassName, ', '.join( [repr(x) for x in self.items] ) );
 
 	def __str__( self ):
-		return '%s %s' % ( self.Command, str( self.item ) );
+		return '%s %s' % ( self.Command, ', '.join( [str(x) for x in self.items] ) );
 
 
 #	Calls the appropriate Matches* function of the sub-class or iterates over them if automatic mode is enabled.

@@ -1,0 +1,16 @@
+Tests that 'routed from' allows multiple mixed entry types
+
+--RULE--
+accept when routed from test.com, 127.0.0.1, abc.com, 1.2.3.4/24;
+
+--EXPECT--
+Rule Input:
+	accept when routed from test.com, 127.0.0.1, abc.com, 1.2.3.4/24;
+
+Rule Result:
+	Accept WhereFrom( Domain('test.com'), IPMask('127.0.0.1'), Domain('abc.com'), IPMask('1.2.3.4/24') )
+
+Rule Text From Result:
+	accept when routed from test.com, 127.0.0.1/32, abc.com, 1.2.3.4/24;
+
+==============================

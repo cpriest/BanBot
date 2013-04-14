@@ -1,0 +1,15 @@
+Tests that 'routed from' fails with multiple mixed entry types when an entry type is invalid
+
+--RULE--
+accept when routed from nobody@nowhere.net, 1.1.1.1, test.com, abc@test.com, 1.2.3.4/24;
+
+--EXPECT--
+Rule Input:
+	accept when routed from nobody@nowhere.net, 1.1.1.1, test.com, abc@test.com, 1.2.3.4/24;
+
+Exception while parsing rule:
+	accept when routed from nobody@nowhere.net, 1.1.1.1, test.com, abc@test.com, 1.2.3.4/24;
+	------------^
+	Unsupported value type: Email(nobody@nowhere.net) for routed from (at char 12), (line:1, col:13)
+
+==============================

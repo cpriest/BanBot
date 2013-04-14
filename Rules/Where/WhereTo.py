@@ -18,4 +18,7 @@ class WhereTo( WhereBase ):
 	};
 
 	def MatchesEnvelope( self, Message ):
-		return self.item.Matches( Message.SMTP.Recipients );
+		for item in self.items:
+			if item.Matches( Message.SMTP.Recipients ):
+				return True;
+		return False;
