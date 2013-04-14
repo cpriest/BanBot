@@ -2,6 +2,12 @@
 # 	bug: specifying -d -dc all --logfile="" still logs some entries to the default logfile??
 #
 # 	TODO:
+#		Add /pcre/ option to any match such as email / domain
+#		Add 'header [name | /pcre/] contains ["text" | /pcre/]'
+#		Add 'body contains ["text" | /pcre/]'
+#		Add something which can replace the built-in pwhois dependency
+#		YAML config file
+#		Non-static .rf usage
 #
 # 	FEATURE: Add replacables to reject messages such as:
 # 			$rcpt_to - email address from the first RCPT TO command
@@ -21,7 +27,7 @@
 #
 #	 	+ fwd as attachments to bb-console@example.com  -> stores attachments to disk for working in bb console
 #
-#	 idea: bb-test@example.com
+#	idea: bb-test@example.com
 #	 		tests attached messages against existing rules and returns email with results
 #
 #	idea: Syntax addition - Allow File Inputs

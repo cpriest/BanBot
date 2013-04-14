@@ -275,18 +275,18 @@ class BanBotScript( Script ):
 			for e in rs.Exceptions:
 				if(type(e) == RuleException):
 					Output.append(yellow('Rule Could not be parsed, rule skipped:'));
-					Output.append(indent(str(e)));
+					Output.append(indent(str(e))+'\n');
 					Warnings += 1;
 				else:
 					Output.append(red('Exception while parsing rules:', style='bold'));
-					Output.append(indent(str(e)));
+					Output.append(indent(str(e))+'\n');
 					Errors += 1;
 
 			if(CommandLineArgs.show_interp or CommandLineArgs.show_interp_int):
 				Output.append('\nRules Interpreted as:');
 				for index, r in enumerate(rs.Rules):
 					if(index > 0):
-						Output.append('----');
+						Output.append('----------------');
 					if(CommandLineArgs.show_interp):
 						Output.append(indent(str(r)));
 					if(CommandLineArgs.show_interp_int):
@@ -365,7 +365,8 @@ class Commands(object):
 	def LintConfigurationDetailed():
 		Errors, Warnings, Output = BanBotScript.TestConfiguration();
 
-		print(Output + '\n');
+		if(len(Output)):
+			print(Output);
 		return Commands._PrintLintConfigurationResults(Errors, Warnings);
 
 	@staticmethod
