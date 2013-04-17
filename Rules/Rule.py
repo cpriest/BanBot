@@ -94,14 +94,20 @@ class Rule():
 	REJECT = Reject.MatchResult;
 	DISCARD = Discard.MatchResult;
 
-	def __init__( self, rule_text ):
+	def __init__( self, rule_text, from_filepath=None ):
 		self.RuleText = rule_text;
 		self.RuleAction = None;
 		try:
+			ParseRuleStatement.cur_filepath = from_filepath;
 			self.RuleAction = ParseRuleStatement.parseString( rule_text )[0];
 
 		except (ParseFatalException, ParseException) as e:
 			message = self.RuleText + os.linesep + ( '-' * ( e.col - 1 ) + '^' ) + os.linesep + str( e );
+			try:
+				if(e.base_exc.item.from_filepath != from_filepath):
+					message += '\n\tLocated In File: {}'.format(e.base_exc.item.from_filepath);
+			except:
+				pass;
 			raise RuleException( self, message, e );
 
 	def __repr__( self ):

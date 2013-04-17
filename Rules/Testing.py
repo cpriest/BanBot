@@ -11,7 +11,7 @@ from __future__ import print_function;
 import re;
 
 # pklib Imports
-import pklib;
+import pklib, pklib.path;
 from pklib import *;
 from pklib import Capture;
 from pklib.lib.icdiff import ConsoleDiff;
@@ -83,7 +83,9 @@ class RuleFileTest( pklib.Object ):
 
 			with Capture.Stdout() as Output:
 				try:
-					self.RuleSet = RuleSet( Mode=RuleSet.TEST ).ParseString( '\n'.join( self.Sections['RULE'] ) );
+					with pklib.path.pushcwd(self.Filepath):
+						self.RuleSet = RuleSet( Mode=RuleSet.TEST ).ParseString( '\n'.join( self.Sections['RULE'] ) );
+
 					# Strip any trailing white-space/lines from Output and convert to string
 					self.Results = str( Output ).rstrip();
 

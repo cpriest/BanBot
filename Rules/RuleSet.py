@@ -13,6 +13,7 @@ import re, sys, traceback;
 # Pypi Imports
 
 # pklib Imports
+import pklib.path;
 from pklib.Output import *;
 
 # Package Imports
@@ -39,7 +40,7 @@ class RuleSet():
 
 		self.Exceptions = [ ];
 
-	def ParseString( self, inputString ):
+	def ParseString( self, inputString, Filepath=None ):
 
 		inputString = self._StripComments( inputString ).strip();
 
@@ -60,7 +61,7 @@ class RuleSet():
 				if( self.Mode == RuleSet.TEST ):
 					print( 'Rule Input:', indent( rule_text ), '', sep='\n' );
 
-				rule_object = Rule( rule_text );
+				rule_object = Rule( rule_text, Filepath );
 
 				if( self.Mode == RuleSet.TEST ):
 					print( 'Rule Result:', indent( repr( rule_object ) ), '', sep='\n' );
@@ -78,7 +79,7 @@ class RuleSet():
 					e.traceback = sys.exc_info()[2];
 					self.Exceptions.append(e);
 
-			except Exception:
+			except Exception as e:
 				if(self.Mode == RuleSet.TEST):
 					print("Exception while processing rule:");
 					print(indent(rule_text));
@@ -93,7 +94,9 @@ class RuleSet():
 	def LoadFromFile( self, Filepath ):
 		""" Loads rules from the given Filepath"""
 		with open( Filepath, 'r' ) as fh:
-			self.ParseString( fh.read() );
+			with pklib.path.pushcwd(Filepath):
+				self.ParseString( fh.read(), Filepath );
+
 		return self;
 
 

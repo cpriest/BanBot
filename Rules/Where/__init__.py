@@ -31,8 +31,10 @@ class WhereBase( RuleBase ):
 			else:
 				self.AddItems( tokens[1:] );
 
-		except ValueError as e:
-			raise ParseFatalException(str(e), pos, str(e), self);
+		except ValueError as ve:
+			e = ParseFatalException(str(ve), pos, str(ve), self);
+			e.base_exc = ve;
+			raise e;
 
 		# Validate sub-class has implemented all Matches* functions
 		for Modifier in self.Modifiers.keys():
@@ -46,7 +48,9 @@ class WhereBase( RuleBase ):
 	def AddItem( self, item ):
 		if(self.Modifier != self.Automatic):
 			if(not isinstance(item, tuple(self.Modifiers[self.Modifier]))):
-				raise ValueError('Unsupported value type: {!s}({}) for {}'.format(type(item).__name__, item, self.Command));
+				e = ValueError('Unsupported value type: {!s}({}) for {}'.format(type(item).__name__, item, self.Command));
+				e.item = item;
+				raise e;
 
 		self.items.append(item);
 

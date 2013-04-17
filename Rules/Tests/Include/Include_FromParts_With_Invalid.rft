@@ -1,0 +1,16 @@
+Tests that an include fails where from types are expected and an invalid from type (connected context) is present.
+
+--RULE--
+discard when connected from [FromParts_With_Invalid.rfi];
+
+--EXPECT--
+Rule Input:
+	discard when connected from [FromParts_With_Invalid.rfi];
+
+Exception while parsing rule:
+	discard when connected from [FromParts_With_Invalid.rfi];
+	-------------^
+	Unsupported value type: Email(nobody@nowhere.net) for connected from (at char 13), (line:1, col:14)
+		Located In File: FromParts_With_Invalid.rfi
+
+==============================

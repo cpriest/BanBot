@@ -1,0 +1,16 @@
+Tests that an include works where from types are expected
+
+--RULE--
+discard when connected from 1.2.23.4, [FromParts.rfi];
+
+--EXPECT--
+Rule Input:
+	discard when connected from 1.2.23.4, [FromParts.rfi];
+
+Rule Result:
+	Discard WhereFrom( IPMask('1.2.23.4'), IPMask('173.245.28.0/22'), IPMask('188.173.0.0/19'), IPMask('39.128.0.0/10'), IPMask('178.148.0.0/16'), IPMask('119.82.64.0/18'), Domain('test.com'), IPMask('188.40.137.128/26'), IPMask('86.107.16.0/22'), IPMask('188.93.120.0/21') )
+
+Rule Text From Result:
+	discard when connected from 1.2.23.4/32, 173.245.28.0/22, 188.173.0.0/19, 39.128.0.0/10, 178.148.0.0/16, 119.82.64.0/18, test.com, 188.40.137.128/26, 86.107.16.0/22, 188.93.120.0/21;
+
+==============================

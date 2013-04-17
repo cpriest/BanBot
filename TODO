@@ -8,6 +8,7 @@
 #		Add something which can replace the built-in pwhois dependency
 #		YAML config file
 #		Non-static .rf usage
+#		[File Inclusion With Glob]
 #
 # 	FEATURE: Add replacables to reject messages such as:
 # 			$rcpt_to - email address from the first RCPT TO command

@@ -7,14 +7,19 @@
 #
 
 from __future__ import print_function;
+import os;
 
 from pyparsing import *;
+import traceback
 
 from Operators import *;
 from Actions import *;
 from Where import *;
 from Types import *;
 
+
+ParseRuleStatement = Forward();
+ParseRuleStatement.cur_filepath = None;
 
 # noinspection PyUnusedLocal
 def DumpParseActions( line, pos, tokens ):
@@ -25,6 +30,27 @@ HashComment = Literal( '#' ) + SkipTo( LineEnd() );
 MultiLineComment = Literal('/*') + SkipTo(Literal('*/'));
 Comments = HashComment | MultiLineComment;
 
+def includeFileContext(parserContext):
+	def includeFile(line, pos, tokens):
+		cur_filepath = ParseRuleStatement.cur_filepath;
+		try:
+			ParseRuleStatement.cur_filepath = tokens[0];
+			with open(tokens[0], 'r', 0) as fh:
+				try:
+					return parserContext.parseString(fh.read());
+				except Exception as e:
+					traceback.print_exc();
+
+		except IOError as e:
+			raise ParseFatalException("Could not include file: "+str(e));
+
+		finally:
+			ParseRuleStatement.cur_filepath = cur_filepath;
+
+	return includeFile;
+
+include = ( Literal('[').suppress() + SkipTo(Literal(']').suppress()) + Literal(']').suppress());
+
 dblQuotedString = QuotedString( '"', escChar='\\' );
 endOfStmt = Literal( ';' ).suppress();
 
@@ -32,11 +58,15 @@ not_operator	 = oneOf( ['not', '!'], caseless=True ).suppress();
 and_operator	 = oneOf( ['and', '&&'], caseless=True ).suppress();
 or_operator		 = oneOf( ['or' , '||'], caseless=True ).suppress();
 
-type_IPMask = Regex( r'(\d+\.\d+\.\d+\.\d+)\/?(\d+)?' ).setParseAction( lambda line, pos, tokens: IPMask( tokens[0] ) );
-type_Domain = Regex( r'([A-Za-z0-9.-]+)\.([A-Za-z]{2,4})' ).setParseAction( lambda line, pos, tokens: Domain( tokens[0] ) );
-type_Email = Regex( r'([A-Za-z0-9._%+-]+)@(?:([A-Za-z0-9.-]+)\.([A-Za-z]{2,4}))?' ).setParseAction( lambda line, pos, tokens: Email( tokens[0] ) );
+type_IPMask = Regex( r'(\d+\.\d+\.\d+\.\d+)\/?(\d+)?' ).setParseAction( lambda line, pos, tokens: IPMask( line, pos, tokens, ParseRuleStatement.cur_filepath) );
+type_Domain = Regex( r'([A-Za-z0-9.-]+)\.([A-Za-z]{2,4})' ).setParseAction( lambda line, pos, tokens: Domain(line, pos, tokens, ParseRuleStatement.cur_filepath) );
+type_Email = Regex( r'([A-Za-z0-9._%+-]+)@(?:([A-Za-z0-9.-]+)\.([A-Za-z]{2,4}))?' ).setParseAction( lambda line, pos, tokens: Email(line, pos, tokens, ParseRuleStatement.cur_filepath) );
 
-grp_FromParts = delimitedList( type_IPMask | type_Domain | type_Email );
+grp_FromParts = Forward();
+
+grp_FromParts = delimitedList( type_IPMask | type_Domain | type_Email);
+grp_FromParts = delimitedList( grp_FromParts | include.setParseAction(includeFileContext(grp_FromParts)));
+
 grp_ToParts = delimitedList( type_Domain | type_Email );
 
 whereFrom = ( Optional( oneOf( WhereFrom.Modifiers.keys(), caseless=True ) ) + CaselessKeyword( 'from' ) + grp_FromParts ).setParseAction( lambda line, pos, tokens: WhereFrom( tokens, line, pos ) );

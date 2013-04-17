@@ -13,8 +13,11 @@ from .. import RuleBase;
 #
 
 class MatchType( RuleBase ):
-	def __init__( self, token ):
-		self.SetToken( token );
+	def __init__( self, line, pos, tokens, from_filepath):
+		self.line = line;
+		self.pos = pos;
+		self.from_filepath = from_filepath;
+		self.SetToken( tokens[0] );
 
 	def SetToken( self, token ):
 		self.token = token.lower();

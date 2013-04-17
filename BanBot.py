@@ -280,6 +280,7 @@ class BanBotScript( Script ):
 				else:
 					Output.append(red('Exception while parsing rules:', style='bold'));
 					Output.append(indent(str(e))+'\n');
+					Output.append(os.linesep.join(traceback.format_exception(type(e), e, e.traceback)));
 					Errors += 1;
 
 			if(CommandLineArgs.show_interp or CommandLineArgs.show_interp_int):
