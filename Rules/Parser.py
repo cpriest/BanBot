@@ -7,19 +7,21 @@
 #
 
 from __future__ import print_function;
-import os;
+from copy import copy
+import os, sys, traceback;
 
 from pyparsing import *;
-import traceback
 
 from Operators import *;
 from Actions import *;
 from Where import *;
 from Types import *;
+from pklib import pp
 
 
 ParseRuleStatement = Forward();
-ParseRuleStatement.cur_filepath = None;
+
+ParseStack = [ ];
 
 # noinspection PyUnusedLocal
 def DumpParseActions( line, pos, tokens ):
@@ -31,21 +33,27 @@ MultiLineComment = Literal('/*') + SkipTo(Literal('*/'));
 Comments = HashComment | MultiLineComment;
 
 def includeFileContext(parserContext):
-	def includeFile(line, pos, tokens):
-		cur_filepath = ParseRuleStatement.cur_filepath;
+	def includeFile(pstr, pos, tokens):
+		filepath = tokens[0];
 		try:
-			ParseRuleStatement.cur_filepath = tokens[0];
-			with open(tokens[0], 'r', 0) as fh:
+			with open(filepath, 'r', 0) as fh:
+				contents = fh.read();
 				try:
-					return parserContext.parseString(fh.read());
-				except Exception as e:
-					traceback.print_exc();
+					ParseStack[-1]['pstr'] = pstr;
+					ParseStack[-1]['pos'] = pos;
+					ParseStack.append({'file': filepath});
+					return (StringStart() + parserContext + StringEnd()).parseString(contents);
+
+				except (ParseFatalException, ParseException) as pe:
+					e = ParseFatalException(pe.pstr, pe.loc, pe.msg, pe.parserElement);
+					e.stack = copy(ParseStack);
+					raise e;
+
+				finally:
+					ParseStack.pop();
 
 		except IOError as e:
-			raise ParseFatalException("Could not include file: "+str(e));
-
-		finally:
-			ParseRuleStatement.cur_filepath = cur_filepath;
+			raise ParseFatalException(pstr, pos, "Could not include file: "+str(e));
 
 	return includeFile;
 
@@ -58,19 +66,24 @@ not_operator	 = oneOf( ['not', '!'], caseless=True ).suppress();
 and_operator	 = oneOf( ['and', '&&'], caseless=True ).suppress();
 or_operator		 = oneOf( ['or' , '||'], caseless=True ).suppress();
 
-type_IPMask = Regex( r'(\d+\.\d+\.\d+\.\d+)\/?(\d+)?' ).setParseAction( lambda line, pos, tokens: IPMask( line, pos, tokens, ParseRuleStatement.cur_filepath) );
-type_Domain = Regex( r'([A-Za-z0-9.-]+)\.([A-Za-z]{2,4})' ).setParseAction( lambda line, pos, tokens: Domain(line, pos, tokens, ParseRuleStatement.cur_filepath) );
-type_Email = Regex( r'([A-Za-z0-9._%+-]+)@(?:([A-Za-z0-9.-]+)\.([A-Za-z]{2,4}))?' ).setParseAction( lambda line, pos, tokens: Email(line, pos, tokens, ParseRuleStatement.cur_filepath) );
+type_IPMask = Regex( r'(\d+\.\d+\.\d+\.\d+)\/?(\d+)?' ) \
+	.setName('IP Address') \
+	.setParseAction( lambda line, pos, tokens: IPMask( tokens, line, pos, ParseStack) );
 
-grp_FromParts = Forward();
+type_Domain = Regex( r'([A-Za-z0-9.-]+)\.([A-Za-z]{2,4})' ) \
+	.setName('Domain Name') \
+	.setParseAction( lambda line, pos, tokens: Domain(tokens, line, pos, ParseStack) );
 
-grp_FromParts = delimitedList( type_IPMask | type_Domain | type_Email);
-grp_FromParts = delimitedList( grp_FromParts | include.setParseAction(includeFileContext(grp_FromParts)));
+type_Email = Regex( r'([A-Za-z0-9._%+-]+)@(?:([A-Za-z0-9.-]+)\.([A-Za-z]{2,4}))?' ) \
+	.setName('Email Address') \
+	.setParseAction( lambda line, pos, tokens: Email(tokens, line, pos, ParseStack) );
 
-grp_ToParts = delimitedList( type_Domain | type_Email );
+grp_Types_Include = include.copy();
+grp_Types = delimitedList( type_IPMask | type_Domain | type_Email | grp_Types_Include);
+grp_Types_Include.setParseAction(includeFileContext(grp_Types));
 
-whereFrom = ( Optional( oneOf( WhereFrom.Modifiers.keys(), caseless=True ) ) + CaselessKeyword( 'from' ) + grp_FromParts ).setParseAction( lambda line, pos, tokens: WhereFrom( tokens, line, pos ) );
-whereTo	 = ( Optional( oneOf( WhereTo.Modifiers.keys(), caseless=True ) ) + CaselessLiteral( 'to' ) + grp_ToParts ).setParseAction( lambda line, pos, tokens: WhereTo( tokens, line, pos ) );
+whereFrom = ( Optional( oneOf( WhereFrom.Modifiers.keys(), caseless=True ) ) + CaselessKeyword( 'from' ) + grp_Types ).setParseAction( lambda line, pos, tokens: WhereFrom( tokens, line, pos, ParseStack ) );
+whereTo	 = ( Optional( oneOf( WhereTo.Modifiers.keys(), caseless=True ) ) + CaselessLiteral( 'to' ) + grp_Types ).setParseAction( lambda line, pos, tokens: WhereTo( tokens, line, pos, ParseStack ) );
 whereStmt = ( whereFrom | whereTo );
 
 

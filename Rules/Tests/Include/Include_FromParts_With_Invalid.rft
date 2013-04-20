@@ -8,9 +8,12 @@ Rule Input:
 	discard when connected from [FromParts_With_Invalid.rfi];
 
 Exception while parsing rule:
-	discard when connected from [FromParts_With_Invalid.rfi];
-	-------------^
-	Unsupported value type: Email(nobody@nowhere.net) for connected from (at char 13), (line:1, col:14)
-		Located In File: FromParts_With_Invalid.rfi
+	Unsupported value type: Email(nobody@nowhere.net)
+	  in file Include_FromParts_With_Invalid.rft (line: 1, col: 29)
+	    discard when connected from [FromParts_With_Invalid.rfi];
+	    ----------------------------^
+	  in file FromParts_With_Invalid.rfi (line: 6, col: 9)
+	            nobody@nowhere.net,             # Invalid "From Type"
+	    --------^
 
 ==============================

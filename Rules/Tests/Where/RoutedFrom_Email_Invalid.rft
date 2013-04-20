@@ -8,8 +8,9 @@ Rule Input:
 	accept when routed from nobody@nowhere.net;
 
 Exception while parsing rule:
-	accept when routed from nobody@nowhere.net;
-	------------^
-	Unsupported value type: Email(nobody@nowhere.net) for routed from (at char 12), (line:1, col:13)
+	Unsupported value type: Email(nobody@nowhere.net)
+	  in file RoutedFrom_Email_Invalid.rft (line: 1, col: 25)
+	    accept when routed from nobody@nowhere.net;
+	    ------------------------^
 
 ==============================

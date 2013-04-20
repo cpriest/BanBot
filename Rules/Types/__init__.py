@@ -11,12 +11,15 @@ from .. import RuleBase;
 #
 # 	Rule Match Types - Base class for Match Types (Email, Domain, IPMask, etc)
 #
+from copy import copy;
 
 class MatchType( RuleBase ):
-	def __init__( self, line, pos, tokens, from_filepath):
+	def __init__( self, tokens, line, pos, ParseStack):
+
 		self.line = line;
 		self.pos = pos;
-		self.from_filepath = from_filepath;
+		self.ParseStack = copy(ParseStack);
+
 		self.SetToken( tokens[0] );
 
 	def SetToken( self, token ):

@@ -1,0 +1,16 @@
+Tests that an include works where to types are expected
+
+--RULE--
+discard when envelope to [ToParts.rfi];
+
+--EXPECT--
+Rule Input:
+	discard when envelope to [ToParts.rfi];
+
+Rule Result:
+	Discard WhereTo( Domain('test.com'), Email('nobody@nowhere.net') )
+
+Rule Text From Result:
+	discard when envelope to test.com, nobody@nowhere.net;
+
+==============================

@@ -84,7 +84,7 @@ class RuleFileTest( pklib.Object ):
 			with Capture.Stdout() as Output:
 				try:
 					with pklib.path.pushcwd(self.Filepath):
-						self.RuleSet = RuleSet( Mode=RuleSet.TEST ).ParseString( '\n'.join( self.Sections['RULE'] ) );
+						self.RuleSet = RuleSet( Mode=RuleSet.TEST ).ParseString( '\n'.join( self.Sections['RULE'] ), os.path.basename(self.Filepath));
 
 					# Strip any trailing white-space/lines from Output and convert to string
 					self.Results = str( Output ).rstrip();

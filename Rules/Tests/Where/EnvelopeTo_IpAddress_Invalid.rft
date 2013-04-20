@@ -1,0 +1,16 @@
+Tests that 'envelope to' disallows ip addresses
+
+--RULE--
+accept when envelope to 127.0.0.1/32, nobody@nowhere.net;
+
+--EXPECT--
+Rule Input:
+	accept when envelope to 127.0.0.1/32, nobody@nowhere.net;
+
+Exception while parsing rule:
+	Unsupported value type: IPMask(127.0.0.1/32)
+	  in file EnvelopeTo_IpAddress_Invalid.rft (line: 1, col: 25)
+	    accept when envelope to 127.0.0.1/32, nobody@nowhere.net;
+	    ------------------------^
+
+==============================

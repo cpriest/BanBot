@@ -8,8 +8,9 @@ Rule Input:
 	accept when routed from nobody@nowhere.net, 1.1.1.1, test.com, abc@test.com, 1.2.3.4/24;
 
 Exception while parsing rule:
-	accept when routed from nobody@nowhere.net, 1.1.1.1, test.com, abc@test.com, 1.2.3.4/24;
-	------------^
-	Unsupported value type: Email(nobody@nowhere.net) for routed from (at char 12), (line:1, col:13)
+	Unsupported value type: Email(nobody@nowhere.net)
+	  in file RoutedFrom_Multi_Mixed_Invalid.rft (line: 1, col: 25)
+	    accept when routed from nobody@nowhere.net, 1.1.1.1, test.com, abc@test.com, 1.2.3.4/24;
+	    ------------------------^
 
 ==============================

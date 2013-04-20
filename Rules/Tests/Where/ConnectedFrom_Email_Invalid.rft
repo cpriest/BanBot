@@ -8,8 +8,9 @@ Rule Input:
 	accept when connected from nobody@nowhere.net;
 
 Exception while parsing rule:
-	accept when connected from nobody@nowhere.net;
-	------------^
-	Unsupported value type: Email(nobody@nowhere.net) for connected from (at char 12), (line:1, col:13)
+	Unsupported value type: Email(nobody@nowhere.net)
+	  in file ConnectedFrom_Email_Invalid.rft (line: 1, col: 28)
+	    accept when connected from nobody@nowhere.net;
+	    ---------------------------^
 
 ==============================

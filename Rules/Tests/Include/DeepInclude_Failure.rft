@@ -1,0 +1,22 @@
+Tests the output of a deep parse failure through several includes
+
+--RULE--
+discard when envelope to [DeepInclude_1.rfi];
+
+--EXPECT--
+Rule Input:
+	discard when envelope to [DeepInclude_1.rfi];
+
+Exception while parsing rule:
+	Unsupported value type: IPMask(1.1.1.1/32)
+	  in file DeepInclude_Failure.rft (line: 1, col: 26)
+	    discard when envelope to [DeepInclude_1.rfi];
+	    -------------------------^
+	  in file DeepInclude_1.rfi (line: 1, col: 19)
+	            test.com, [DeepInclude_2.rfi], nobody@nowhere.net
+	    ------------------^
+	  in file DeepInclude_2.rfi (line: 1, col: 19)
+	            test.com, 1.1.1.1
+	    ------------------^
+
+==============================

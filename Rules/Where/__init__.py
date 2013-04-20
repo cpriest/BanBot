@@ -13,16 +13,21 @@ from .. import RuleBase;
 #
 # 	Where Handlers - Base class for all Where Handlers (WhereTo, WhereFrom)
 #
-from pyparsing import ParseFatalException
-
+from copy import copy;
+from pyparsing import ParseFatalException;
+from pklib import pp;
 
 class WhereBase( RuleBase ):
 	Automatic = '';
 	Modifiers = { };
 
-	def __init__( self, tokens, line, pos ):
+	def __init__( self, tokens, line, pos, ParseStack ):
 		self.items = [ ];
 		self.Modifier = self.Automatic;
+
+		self.line = line;
+		self.pos = pos;
+		self.ParseStack = copy(ParseStack);
 
 		try:
 			if( tokens[0].lower() in self.Modifiers.keys() ):
@@ -32,8 +37,8 @@ class WhereBase( RuleBase ):
 				self.AddItems( tokens[1:] );
 
 		except ValueError as ve:
-			e = ParseFatalException(str(ve), pos, str(ve), self);
-			e.base_exc = ve;
+			e = ParseFatalException(ve.item.line, ve.item.pos, str(ve), self);
+			e.stack = ve.item.ParseStack;
 			raise e;
 
 		# Validate sub-class has implemented all Matches* functions
@@ -48,7 +53,7 @@ class WhereBase( RuleBase ):
 	def AddItem( self, item ):
 		if(self.Modifier != self.Automatic):
 			if(not isinstance(item, tuple(self.Modifiers[self.Modifier]))):
-				e = ValueError('Unsupported value type: {!s}({}) for {}'.format(type(item).__name__, item, self.Command));
+				e = ValueError('Unsupported value type: {!s}({})'.format(type(item).__name__, item));
 				e.item = item;
 				raise e;
 

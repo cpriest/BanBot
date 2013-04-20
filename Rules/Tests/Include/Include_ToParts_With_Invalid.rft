@@ -1,0 +1,19 @@
+Tests that an include works where to types are expected
+
+--RULE--
+discard when envelope to [ToParts_With_Invalid.rfi];
+
+--EXPECT--
+Rule Input:
+	discard when envelope to [ToParts_With_Invalid.rfi];
+
+Exception while parsing rule:
+	Unsupported value type: IPMask(12.12.12.12/32)
+	  in file Include_ToParts_With_Invalid.rft (line: 1, col: 26)
+	    discard when envelope to [ToParts_With_Invalid.rfi];
+	    -------------------------^
+	  in file ToParts_With_Invalid.rfi (line: 1, col: 19)
+	            test.com, 12.12.12.12, nobody@nowhere.net
+	    ------------------^
+
+==============================

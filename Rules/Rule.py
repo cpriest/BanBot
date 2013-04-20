@@ -11,9 +11,12 @@ from __future__ import print_function;
 import os;
 
 # Package Imports
-from Parser import ParseRuleStatement, ParseException, ParseFatalException;
+import pyparsing
+from Parser import ParseRuleStatement, ParseException, ParseFatalException, ParseStack;
 
 from Actions import *;
+from pklib import pp
+
 
 class RuleException( Exception ):
 	def __init__( self, rule_object, message, pyparse_exception ):
@@ -98,17 +101,31 @@ class Rule():
 		self.RuleText = rule_text;
 		self.RuleAction = None;
 		try:
-			ParseRuleStatement.cur_filepath = from_filepath;
+			ParseStack.append( { 'file': from_filepath } );
 			self.RuleAction = ParseRuleStatement.parseString( rule_text )[0];
 
 		except (ParseFatalException, ParseException) as e:
-			message = self.RuleText + os.linesep + ( '-' * ( e.col - 1 ) + '^' ) + os.linesep + str( e );
-			try:
-				if(e.base_exc.item.from_filepath != from_filepath):
-					message += '\n\tLocated In File: {}'.format(e.base_exc.item.from_filepath);
-			except:
-				pass;
-			raise RuleException( self, message, e );
+			def getMessage(pstr, pos, filepath=''):
+				line = pyparsing.line(pos, pstr);
+				lineno = pyparsing.lineno(pos, pstr);
+				col = pyparsing.col(pos, pstr)
+				arrow = ( '-'  * (col-1) + '^');
+				ls = os.linesep + '    ';
+				return '  in file {filepath} (line: {lineno}, col: {col}){ls}{line}{ls}{arrow}'.format(**locals());
+
+			message = [e.msg];
+			if(hasattr(e, 'stack')):
+				for stack_item in e.stack:
+					if('pos' in stack_item):
+						message.append(getMessage(stack_item['pstr'],stack_item['pos'], stack_item['file']));
+					else:
+						message.append(getMessage(e.pstr, e.loc, e.stack[-1]['file']));
+			else:
+				message.append(getMessage(e.pstr, e.loc, from_filepath));
+			raise RuleException( self, os.linesep.join(message), e );
+
+		finally:
+			ParseStack.pop();
 
 	def __repr__( self ):
 		return repr( self.RuleAction ) if self.RuleAction is not None else None;
