@@ -18,7 +18,9 @@ from ..Actions import Action;
 class Operator ( RuleBase ):
 	JoinString = '';
 
-	def __init__( self, tokens ):
+	def __init__( self, tokens, line, pos, stack ):
+		super(Operator, self).__init__(line, pos, stack);
+
 		self.SetItems( tokens );
 
 	def SetItems( self, items ):

@@ -92,17 +92,17 @@ cmdRejectWith = Optional( Group( CaselessLiteral( 'with' ).suppress() +
 							Optional( dblQuotedString ) ) );
 
 matchRules = operatorPrecedence( whereStmt, [
-									( not_operator, 1, opAssoc.RIGHT, lambda  line, pos, tokens: Not( tokens[0] ) ),
-									( and_operator, 2, opAssoc.LEFT, lambda  line, pos, tokens: And( tokens[0] ) ),
-									( or_operator, 2, opAssoc.LEFT, lambda  line, pos, tokens: Or( tokens[0] ) ),
+									( not_operator, 1, opAssoc.RIGHT, lambda  line, pos, tokens: Not( tokens[0], line, pos, ParseStack ) ),
+									( and_operator, 2, opAssoc.LEFT, lambda  line, pos, tokens: And( tokens[0], line, pos, ParseStack) ),
+									( or_operator, 2, opAssoc.LEFT, lambda  line, pos, tokens: Or( tokens[0], line, pos, ParseStack ) ),
 									] );
 
 
 WhenWhereOptional = Optional( oneOf( ['when', 'where'] ) ).suppress();
 
-cmd_Accept = ( CaselessLiteral( 'accept' ) + WhenWhereOptional + matchRules ).setParseAction( lambda line, pos, tokens: Accept( tokens[1] ) );
-cmd_Reject = ( CaselessLiteral( 'reject' ) + cmdRejectWith + WhenWhereOptional + matchRules ).setParseAction( lambda line, pos, tokens: Reject( tokens ) );
-cmd_Discard = ( CaselessLiteral( 'discard' ) + WhenWhereOptional + matchRules ).setParseAction( lambda line, pos, tokens: Discard( tokens[1] ) );
+cmd_Accept = ( CaselessLiteral( 'accept' ) + WhenWhereOptional + matchRules ).setParseAction( lambda line, pos, tokens: Accept( tokens[1], line, pos, ParseStack ) );
+cmd_Reject = ( CaselessLiteral( 'reject' ) + cmdRejectWith + WhenWhereOptional + matchRules ).setParseAction( lambda line, pos, tokens: Reject( tokens, line, pos, ParseStack ) );
+cmd_Discard = ( CaselessLiteral( 'discard' ) + WhenWhereOptional + matchRules ).setParseAction( lambda line, pos, tokens: Discard( tokens[1], line, pos, ParseStack ) );
 
 cmdAction = ( cmd_Accept | cmd_Reject | cmd_Discard );
 

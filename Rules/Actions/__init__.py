@@ -16,7 +16,9 @@ class Action( RuleBase ):
 	NO_MATCH = 'NoMatch';
 	MatchResult = NO_MATCH;
 
-	def __init__( self, token ):
+	def __init__( self, token, line, pos, stack ):
+		super(Action, self).__init__(line, pos, stack);
+
 		self.item = token;
 
 	@property

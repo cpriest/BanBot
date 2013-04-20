@@ -11,24 +11,15 @@ from .. import RuleBase;
 #
 # 	Rule Match Types - Base class for Match Types (Email, Domain, IPMask, etc)
 #
-from copy import copy;
 
 class MatchType( RuleBase ):
-	def __init__( self, tokens, line, pos, ParseStack):
-
-		self.line = line;
-		self.pos = pos;
-		self.ParseStack = copy(ParseStack);
+	def __init__( self, tokens, line, pos, stack):
+		super(MatchType, self).__init__(line, pos, stack);
 
 		self.SetToken( tokens[0] );
 
 	def SetToken( self, token ):
 		self.token = token.lower();
-
-	# For some reason pyparsing wants __getitem__ and passes 0 as key?  Just return None
-	# noinspection PyUnusedLocal
-	def __getitem__( self, key ):
-		return None;
 
 	def __repr__( self ):
 		return "%s('%s')" % ( self.ClassName, self.token );

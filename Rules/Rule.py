@@ -103,6 +103,7 @@ class Rule():
 		try:
 			ParseStack.append( { 'file': from_filepath } );
 			self.RuleAction = ParseRuleStatement.parseString( rule_text )[0];
+			self.RuleAction.CleanupParsing();
 
 		except (ParseFatalException, ParseException) as e:
 			def getMessage(pstr, pos, filepath=''):

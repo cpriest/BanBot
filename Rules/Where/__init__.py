@@ -13,21 +13,16 @@ from .. import RuleBase;
 #
 # 	Where Handlers - Base class for all Where Handlers (WhereTo, WhereFrom)
 #
-from copy import copy;
 from pyparsing import ParseFatalException;
-from pklib import pp;
 
 class WhereBase( RuleBase ):
 	Automatic = '';
 	Modifiers = { };
 
-	def __init__( self, tokens, line, pos, ParseStack ):
-		self.items = [ ];
-		self.Modifier = self.Automatic;
+	def __init__( self, tokens, line, pos, stack ):
+		super(WhereBase, self).__init__(line, pos, stack);
 
-		self.line = line;
-		self.pos = pos;
-		self.ParseStack = copy(ParseStack);
+		self.Modifier = self.Automatic;
 
 		try:
 			if( tokens[0].lower() in self.Modifiers.keys() ):
@@ -37,8 +32,8 @@ class WhereBase( RuleBase ):
 				self.AddItems( tokens[1:] );
 
 		except ValueError as ve:
-			e = ParseFatalException(ve.item.line, ve.item.pos, str(ve), self);
-			e.stack = ve.item.ParseStack;
+			e = ParseFatalException(ve.item.pi['line'], ve.item.pi['pos'], str(ve), self);
+			e.stack = ve.item.pi['stack'];
 			raise e;
 
 		# Validate sub-class has implemented all Matches* functions

@@ -15,7 +15,7 @@ class Reject( Action ):
 	DefaultRejectCode = 550;
 	DefaultRejectMessage = "Recipient address rejected. User unknown in virtual mailbox table";
 
-	def __init__( self, tokens ):
+	def __init__( self, tokens, line, pos, stack ):
 		self._RejectCode = None;
 		self._RejectMessage = None;
 
@@ -23,9 +23,9 @@ class Reject( Action ):
 			self._RejectCode = int( tokens[1][0] );
 			if( len( tokens[1] ) == 2 ):
 				self._RejectMessage = tokens[1][1];
-			Action.__init__( self, tokens[2] );
+			super(Reject, self).__init__(tokens[2], line, pos, stack);
 		else:
-			Action.__init__( self, tokens[1] );
+			super(Reject, self).__init__(tokens[1], line, pos, stack);
 
 	@property
 	def RejectCode(self):
