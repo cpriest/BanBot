@@ -42,7 +42,7 @@ def includeFileContext(parserContext):
 					ParseStack[-1]['pstr'] = pstr;
 					ParseStack[-1]['pos'] = pos;
 					ParseStack.append({'file': filepath});
-					return (StringStart() + parserContext + StringEnd()).parseString(contents);
+					return (StringStart() + OneOrMore(parserContext | Comments.suppress()) + StringEnd()).parseString(contents);
 
 				except (ParseFatalException, ParseException) as pe:
 					e = ParseFatalException(pe.pstr, pe.loc, pe.msg, pe.parserElement);

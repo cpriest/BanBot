@@ -84,6 +84,11 @@ class Rule():
 
 	You may mix and match && and || with parenthesis for grouping, see Rules/Tests for examples.
 
+	Inclusion:
+		You can specify to include a file by surrounding with blocks, such as [/etc/banbot/xyz.rfi].
+			* Note: Presently this is only available anywhere a type is allowed, planned to be allowed
+			  anywhere within the syntax.
+
 	Comments:
 		Any # to end of line is a comment
 		Multi-line C+ style comments /* ... */
