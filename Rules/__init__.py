@@ -40,7 +40,8 @@ class RuleBase( object ):
 	def CleanupParsing(self):
 		del self.pi;
 		for item in self:
-			item.CleanupParsing();
+			if(isinstance(item, self.__class__)):
+				item.CleanupParsing();
 
 from Rule import *;
 from RuleSet import *;

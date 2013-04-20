@@ -16,16 +16,13 @@ class MatchType( RuleBase ):
 	def __init__( self, tokens, line, pos, stack):
 		super(MatchType, self).__init__(line, pos, stack);
 
-		self.SetToken( tokens[0] );
-
-	def SetToken( self, token ):
-		self.token = token.lower();
+		self.item = tokens[0].lower();
 
 	def __repr__( self ):
-		return "%s('%s')" % ( self.ClassName, self.token );
+		return "%s('%s')" % ( self.ClassName, self.item );
 
 	def __str__( self ):
-		return str( self.token );
+		return str( self.item );
 
 	def Matches( self, Content ):
 		if( isinstance( Content, type( [] ) ) ):
@@ -38,7 +35,7 @@ class MatchType( RuleBase ):
 
 	# Default implementation is a simple lower case "contains", other type sub-classes can over-ride to provide other types of comparisons
 	def MatchesContentItem( self, ContentItem ):
-		return ContentItem.lower().find( self.token ) != -1;
+		return ContentItem.lower().find( self.item ) != -1;
 
 
 

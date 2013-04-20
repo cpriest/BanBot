@@ -21,10 +21,7 @@ class Operator ( RuleBase ):
 	def __init__( self, tokens, line, pos, stack ):
 		super(Operator, self).__init__(line, pos, stack);
 
-		self.SetItems( tokens );
-
-	def SetItems( self, items ):
-		self.items = items;
+		self.items = tokens;
 
 	@property
 	def ShouldParenthesizeOutput( self ):

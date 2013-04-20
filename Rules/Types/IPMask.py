@@ -11,9 +11,12 @@ from ipaddr import IPNetwork;
 from . import MatchType;
 
 class IPMask( MatchType ):
-	def SetToken( self, token ):
-		super(IPMask, self).SetToken(token);
-		self.IpNetwork = IPNetwork( token );
+
+	@MatchType.item.setter
+	def item(self, val):
+		# noinspection PyCallingNonCallable
+		MatchType.item.fset(self, val);
+		self.IpNetwork = IPNetwork(val);
 
 	# Match the content item against the ip mask
 	def MatchesContentItem( self, ContentItem ):
