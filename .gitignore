@@ -5,4 +5,4 @@
 /.idea
 /cmp_Milter.iml
 /out
-/deploy/settings
+/deploy/settings/*

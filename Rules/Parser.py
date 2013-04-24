@@ -78,8 +78,14 @@ type_Email = Regex( r'([A-Za-z0-9._%+-]+)@(?:([A-Za-z0-9.-]+)\.([A-Za-z]{2,4}))?
 	.setName('Email Address') \
 	.setParseAction( lambda line, pos, tokens: Email(tokens, line, pos, ParseStack) );
 
+type_Function_RBL = (CaselessLiteral('rbl(').suppress() + delimitedList(type_Domain) + Literal(')').suppress()) \
+	.setName('rbl() function') \
+	.setParseAction(lambda line, pos,tokens: Function_RBL(tokens, line, pos, ParseStack) );
+
+grp_Type_Functions = ( type_Function_RBL );
+
 grp_Types_Include = include.copy();
-grp_Types = delimitedList( type_IPMask | type_Domain | type_Email | grp_Types_Include);
+grp_Types = delimitedList( type_IPMask | type_Domain | type_Email | grp_Type_Functions | grp_Types_Include);
 grp_Types_Include.setParseAction(includeFileContext(grp_Types));
 
 whereFrom = ( Optional( oneOf( WhereFrom.Modifiers.keys(), caseless=True ) ) + CaselessKeyword( 'from' ) + grp_Types ).setParseAction( lambda line, pos, tokens: WhereFrom( tokens, line, pos, ParseStack ) );

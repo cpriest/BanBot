@@ -1,0 +1,16 @@
+Tests that the rbl() function type is accepted in a rule
+
+--RULE--
+reject when routed from rbl(pbl.spamhaus.org, xbl.spamhaus.org);
+
+--EXPECT--
+Rule Input:
+	reject when routed from rbl(pbl.spamhaus.org, xbl.spamhaus.org);
+
+Rule Result:
+	Reject WhereFrom( Function_RBL( Domain('pbl.spamhaus.org'), Domain('xbl.spamhaus.org') ) )
+
+Rule Text From Result:
+	reject when routed from rbl(pbl.spamhaus.org, xbl.spamhaus.org);
+
+============================== 

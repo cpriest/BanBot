@@ -57,26 +57,27 @@ class Rule():
 					[match_modifier] - Omitting a match modifier makes a best guess based on the {data_type} specified
 										by attempting to utilize one of the modifiers below, in the order specified below
 
-					[ routed | connected | envelope ] from ( ipMask | domain | emailAddress, ... )
+					[ routed | connected | envelope ] from {data_type}
 
 						connected	- Indicates that the rule matches against the connecting client
-										Valid Data Types: ipMask | domain
+										Valid {data_type}'s: ipMask | domain | rbl()
 
 						envelope	- Indicates that the rule matches against the envelope from address
-										Valid Data Types: emailAddress | domain
+										Valid {data_type}'s: emailAddress | domain
 
 						routed		- Indicates that the rule can match on any entry of a received header
-										Valid Data Types: ipMask | domain
+										Valid {data_type}'s: ipMask | domain | rbl()
 
 					[ envelope ] to ( domain | emailAddress, ... )
 
 						envelope	- Indicates that the rule matches against the envelope to address
-										Valid Data Types: domain | emailAddress
+										Valid {data_type}'s: domain | emailAddress
 
 				{data_type}		- Various match parameter data types
 					ipMask			- CIDR notation IP address mask, such as 127.0.0.1/8 or ordinary ip address
 					domain			- Any valid domain name, matches any from account
 					emailAddress	- Any valid email address
+					rbl(...)		- A comma separated list of real-time blacklist domains (reverse ip form)
 
 			{branch_op}
 				and | &&		- Logical and operator

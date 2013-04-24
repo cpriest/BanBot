@@ -16,13 +16,22 @@ class MatchType( RuleBase ):
 	def __init__( self, tokens, line, pos, stack):
 		super(MatchType, self).__init__(line, pos, stack);
 
-		self.item = tokens[0].lower();
+		if(len(tokens) == 1 and isinstance(tokens[0], str)):
+			self.item = tokens[0].lower();
+		else:
+			self.items = tokens;
 
 	def __repr__( self ):
-		return "%s('%s')" % ( self.ClassName, self.item );
+		if(len(self.items) == 1):
+			return "{}('{!s}')".format( self.ClassName, self.item );
+		else:
+			return "{}( {!s} )".format( self.ClassName, ', '.join([ repr(x) for x in self.items ]) );
 
 	def __str__( self ):
-		return str( self.item );
+		if(len(self.items) == 1):
+			return str( self.item );
+		else:
+			return ', '.join([ str(x) for x in self.items ]);
 
 	def Matches( self, Content ):
 		if( isinstance( Content, type( [] ) ) ):
@@ -42,3 +51,4 @@ class MatchType( RuleBase ):
 from Domain import Domain;
 from Email import Email;
 from IPMask import IPMask;
+from Function_RBL import Function_RBL;

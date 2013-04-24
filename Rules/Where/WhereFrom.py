@@ -19,9 +19,9 @@ class WhereFrom( WhereBase ):
 	Routed 		 = 'routed';
 
 	Modifiers = {
-		Connected	: [ IPMask, Domain ],
+		Connected	: [ IPMask, Domain, Function_RBL ],
 		Envelope	: [ Email, Domain ],
-		Routed		: [ IPMask, Domain ],
+		Routed		: [ IPMask, Domain, Function_RBL ],
 	};
 
 	def MatchesConnected( self, Message ):
