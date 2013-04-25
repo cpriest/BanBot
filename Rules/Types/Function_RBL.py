@@ -6,6 +6,8 @@
 #
 #
 
+import socket, re;
+
 from . import MatchType;
 
 class Function_RBL( MatchType ):
@@ -17,9 +19,20 @@ class Function_RBL( MatchType ):
 		MatchType.item.fset(self, val);
 
 	# Match the content item against the ip mask
-#	def MatchesContentItem( self, ContentItem ):
-#		return IPNetwork(ContentItem) in self.IpNetwork;
+	def MatchesContentItem( self, ContentItem ):
+		try:
+			o1, o2, o3, o4 = re.match(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', ContentItem).groups();
+		except AttributeError:
+			return False;
+
+		for rbl_domain in self.items:
+			try:
+				rbl_result = socket.gethostbyname('{o4}.{o3}.{o2}.{o1}.{rbl_domain}'.format(**locals()));
+				print('{ContentItem} is listed on {rbl_domain} ({rbl_result})'.format(**locals()));
+				return True;
+			except socket.gaierror:
+				pass;
+		return False;
 
 	def __str__( self ):
 		return 'rbl({})'.format( ', '.join([str(x) for x in self.items]) );
-
